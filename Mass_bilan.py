@@ -114,7 +114,7 @@ def extracting_SI_drift(lat_range = [79,80], lon_range = [-40,20]):
                 #dX = dX.dropna(dim = "yc",how = "all")
                 #dY = dY.dropna(dim = "yc",how = "all")
 
-                if year == 2011:
+                if year == 2010:
                     if month == 1:
                         if day == 1:
                             lat = ds['lat'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat  > lat_min) & (ds.lat < lat_max), drop = True)
@@ -152,8 +152,9 @@ def extracting_sit(lat_range = [79,80], lon_range = [-40,20]):
 
 def Fram_strait_mass_bilan(year, month):
     """
-        Return the monthly mean SIV that pass thhrough the Fram strait during the given month
+        Return the monthly mean SIV that pass through the Fram strait during the given month
     """
+    print(year, month)
     month_names = ["jan", "feb", "mar", "april", "may", "june", "july", "aug", "sept", "oct","nov", "dec"]
     useful_date = []
     useful_index = []
@@ -258,4 +259,5 @@ for year in range(2010,2021):
     plt.title(f'monthly averaged daily SIV passing through Fram Strait Northward in [m^3] - {year}')
     plt.grid()
     plt.savefig(f"Plots/Fram_strait/{year}-Mass_bilan_Fram_strait.png")
+    plt.clf()
 
