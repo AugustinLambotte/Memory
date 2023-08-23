@@ -182,6 +182,12 @@ def Fram_strait_mass_bilan(year, month):
     lat_with_drift = []
     lon_with_drift = []
     SI_drift = []
+
+    day_to_delete = []
+    for day in range(len(recorded_si_drift)):
+        if np.isnan(recorded_si_drift[day]).all():
+            day_to_delete.append(day)
+    recorded_si_drift = np.delete(recorded_si_drift,day_to_delete, axis = 0)
     for day in range(len(recorded_si_drift)):
         drift_col.append([])
         drift_line.append([])
@@ -198,7 +204,6 @@ def Fram_strait_mass_bilan(year, month):
             lon_with_drift[-1].append(float(drift_lon[line,col]))
             SI_drift[-1].append(float(recorded_si_drift[day,line,col]))
 
-    
     # Same as above but for lat and lon with sit data
     sit_col = []
     sit_line = []
@@ -255,9 +260,11 @@ for year in range(2010,2021):
     for month in range(1,13):
         Mass_bilan_fram_strait[month-1] = Fram_strait_mass_bilan(year,month)
 
+    fig = plt.figure(figsize = (10,10))
     plt.plot([month for month in range(1,13)], Mass_bilan_fram_strait)
     plt.title(f'monthly averaged daily SIV passing through Fram Strait Northward in [m^3] - {year}')
     plt.grid()
+    plt.ylim(-2*1e10,0.25*1e10)
     plt.savefig(f"Plots/Fram_strait/{year}-Mass_bilan_Fram_strait.png")
     plt.clf()
 

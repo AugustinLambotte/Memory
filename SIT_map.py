@@ -142,17 +142,19 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
     if save:
         dates = [[2011,3,15],[2011,9,15],[2012,3,15],[2012,9,15],[2013,3,15],[2013,9,15],[2014,3,15],[2014,9,15],[2015,3,15],[2015,9,15],[2016,3,15]
                 ,[2016,9,15],[2017,3,15],[2017,9,15],[2018,3,15],[2018,9,15],[2019,3,15],[2019,9,15]]
-        for date in dates:
-            print(f"### - Saving SIT: {date[0]}-{date[1]} - ###\n")
-            fig, axs = plt.subplots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
-            axs.set_extent([-70, 25, 55, 85], crs = ccrs.PlateCarree())
-            axs.coastlines()
-            axs.gridlines()
-            levels = np.linspace(0,7,1000)
-            cs = axs.contourf(lon, lat, mensual_mean(date[0],date[1]), levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
-            axs.set_title("Mensual mean SIT value in meters for {}/{}".format(date[0],date[1]))
-            fig.colorbar(cs, ax = axs)
-            plt.savefig(f"Plots/mean/Sea_ice/SIT_mean_{date[0]}-{date[1]}.png")
+        for year in range(2011,2020):
+            for month in range(1,13):
+                date = [year,month]
+                print(f"### - Saving SIT: {date[0]}-{date[1]} - ###\n")
+                fig, axs = plt.subplots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
+                axs.set_extent([-70, 25, 55, 85], crs = ccrs.PlateCarree())
+                axs.coastlines()
+                axs.gridlines()
+                levels = np.linspace(0,7,1000)
+                cs = axs.contourf(lon, lat, mensual_mean(date[0],date[1]), levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
+                axs.set_title("Mensual mean SIT value in meters for {}/{}".format(date[0],date[1]))
+                fig.colorbar(cs, ax = axs)
+                plt.savefig(f"Plots/mean/Sea_ice/{year}/SIT_mean_{date[0]}-{date[1]}.png")
     else:
         fig, axs = plt.subplots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
         axs.set_extent([-70, 25, 55, 85], crs = ccrs.PlateCarree())
