@@ -11,7 +11,7 @@ from datetime import datetime, date, timedelta
 import cmocean
 
 
-def extracting_SI_drift(lat_range = [64,85], lon_range = [-40,20]):
+def extracting_SI_drift(lat_range = [64,80], lon_range = [-40,20]):
     
     lon_min = lon_range[0]
     lon_max = lon_range[1]
@@ -156,14 +156,29 @@ X_drift, Y_drift, lat, lon = extracting_SI_drift()
 for year in range(2010,2011):
     for month in range(1,2):
         X_drift_av, Y_drift_av = mensual_mean(year,month)
-        current_magnitude = np.sqrt(X_drift_av**2 + Y_drift_av**2)
+        current_magnitude = np.sqrt(X_drift_av**2 + Y_drift_av**2) * 1000/(24*60*60) #Passing from km/day in m/s
         fig,axs = plt.subplots(figsize = (10,10), subplot_kw={'projection': ccrs.LambertConformal(central_longitude = -20)})
-        axs.set_extent([-40, 11, 62, 85], crs = ccrs.PlateCarree())
+        #axs.set_extent([-40, 11, 62, 85], crs = ccrs.PlateCarree())
+        
+        xlim = [-43, 16]
+        ylim = [61, 81]
+        lower_space = 3 
+        rect = mpath.Path([[xlim[0], ylim[0]],
+                        [xlim[1], ylim[0]],
+                        [xlim[1], ylim[1]],
+                        [xlim[0], ylim[1]],
+                        [xlim[0], ylim[0]],
+                        ]).interpolated(20)
+        proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+        rect_in_target = proj_to_data.transform_path(rect)
+        axs.set_boundary(rect_in_target)
+        axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
         axs.coastlines()
+        axs.gridlines()
         axs.set_title(f"Sea Ice mean drift in km/days during {month}/{year}")
         #Magnitude plot
         levels = np.linspace(0,35,30)
-        cs = axs.contourf(lon,lat,current_magnitude, cmap = "cmo.speed",levels = levels, transform =ccrs.PlateCarree())
+        cs = axs.contourf(lon,lat,current_magnitude, cmap = "cmo.speed", transform =ccrs.PlateCarree())
         plt.grid()
         #Vector plot
         axs.quiver(np.array(lon),np.array(lat),np.array(X_drift_av),np.array(Y_drift_av),scale = 400,transform = ccrs.PlateCarree())

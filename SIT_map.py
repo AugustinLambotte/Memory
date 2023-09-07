@@ -89,9 +89,9 @@ def extracting_data(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaice
     ds = xr.open_dataset(file, decode_times = False)
     lon = ds['Longitude']
     lat = ds['Latitude']
-    sit = ds['Sea_Ice_Thickness'].where((ds.Sea_Ice_Thickness != 0) & (ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max))
-    sic = ds['Sea_Ice_Concentration'].where((ds.Sea_Ice_Thickness != 0) & (ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max))
-    sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max))
+    sit = ds['Sea_Ice_Thickness'].where((ds.Sea_Ice_Thickness != 0) & (ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)))
+    sic = ds['Sea_Ice_Concentration'].where((ds.Sea_Ice_Thickness != 0) & (ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)))
+    sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)))
     time =  ds['Time']
     print(ds.attrs)
     ds.close
@@ -177,7 +177,6 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
                 
                 cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0,0.02,axs.get_position().height])
                 fig.colorbar(cs, cax = cax, ticks = [0,1,2,3,4])
-                plt.grid
                 plt.savefig(f"Plots/mean/Sea_ice/{year}/SIT_mean_{date[0]}-{date[1]}.png")
     else:
         fig, axs = plt.subplots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
