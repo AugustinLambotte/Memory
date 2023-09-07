@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import xarray as xr
 import pandas as pd
+from scipy import interpolate
 from datetime import datetime, date, timedelta
 import cmocean
 
@@ -16,6 +17,14 @@ def extracting_SI_drift(lat_range = [64,85], lon_range = [-40,20]):
     lon_max = lon_range[1]
     lat_min = lat_range[0]
     lat_max = lat_range[1]
+
+    #First, extracting the lat lon grid of sea ice thickness for the interpolation
+    ds_sit = xr.open_dataset("C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", decode_times = False)
+    sit_lat = ds_sit['Latitude'].where((ds_sit.Longitude > lon_min) & (ds_sit.Longitude < lon_max) & (ds_sit.Latitude > lat_min) & (ds_sit.Latitude < lat_max), drop = True)
+    sit_lon = ds_sit['Longitude'].where((ds_sit.Longitude > lon_min) & (ds_sit.Longitude < lon_max) & (ds_sit.Latitude > lat_min) & (ds_sit.Latitude < lat_max), drop = True)
+
+    #print(ds.Latitude.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max), drop = True))
+
     X_drift = dict( y2010 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),
                     y2011 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),
                     y2012 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),
@@ -40,8 +49,8 @@ def extracting_SI_drift(lat_range = [64,85], lon_range = [-40,20]):
                     y2020 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),)
     dir = "C:/Users/Augustin/Downloads/osisaf.met.no/reprocessed/ice/drift_lr/v1/merged/"
     print("\n##### - Extracting Sea Ice drift data - #####\n")
-    for year in range(2010,2021):
-        for month in range(1,13):
+    for year in range(2010,2011):
+        for month in range(1,2):
             print(f'{month}/{year}')
             if month ==1:
                 nb_days = 31
@@ -103,6 +112,7 @@ def extracting_SI_drift(lat_range = [64,85], lon_range = [-40,20]):
             for day in range(1,nb_days+1):
                 file =  dir+f"{year}" + "/" + f"{month:02d}" + f"/ice_drift_nh_ease2-750_cdr-v1p0_24h-{year}{month:02d}{day:02d}1200.nc"
                 ds = xr.open_dataset(file, decode_times = False)
+                
                 dX = ds['dX'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
                 dY = ds['dY'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
                 
@@ -111,26 +121,40 @@ def extracting_SI_drift(lat_range = [64,85], lon_range = [-40,20]):
                 if year == 2010:
                     if month == 1:
                         if day == 1:
-                            lat = ds['lat']
-                            lon = ds['lon']
+                            lat = ds['lat'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
+                            lon = ds['lon'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
+                
+                            lat = lat.sel(time = 1, method = 'nearest')
+                            lon = lon.sel(time = 1, method = 'nearest')
+                print(np.shape(lat))            
                 ds.close
+                quit()
+                for i in range(len(dX)):
+                    for j in range(len(dX[i])):
+                        print(float(dX[i,j]))
+                quit()
                 X_drift[f'y{year}'][month_name].append(dX)
                 Y_drift[f'y{year}'][month_name].append(dY)
+    ds_sit.close
     return X_drift, Y_drift, lat, lon
 
 def mensual_mean(year, month):
     month_names = ["jan", "feb", "mar", "april", "may", "june", "july", "aug", "sept", "oct","nov", "dec"]
+    print(np.shape(X_drift[f"y{year}"][f"{month_names[month-1]}"]))
+    """ for i in range(len(X_drift[f"y{year}"][f"{month_names[month-1]}"][0])):
+        for j in range(len(X_drift[f"y{year}"][f"{month_names[month-1]}"][0][i])):
+            print(float(X_drift[f"y{year}"][f"{month_names[month-1]}"][0][i][j])) """
     X_drift_averaged = np.nanmean(X_drift[f"y{year}"][f"{month_names[month-1]}"], axis = 0)
     Y_drift_averaged = np.nanmean(Y_drift[f"y{year}"][f"{month_names[month-1]}"], axis = 0)
-    
+    quit()
     return X_drift_averaged, Y_drift_averaged
 
 ##### - Main - ####
 
 X_drift, Y_drift, lat, lon = extracting_SI_drift()
 
-for year in range(2010,2021):
-    for month in range(1,13):
+for year in range(2010,2011):
+    for month in range(1,2):
         X_drift_av, Y_drift_av = mensual_mean(year,month)
         current_magnitude = np.sqrt(X_drift_av**2 + Y_drift_av**2)
         fig,axs = plt.subplots(figsize = (10,10), subplot_kw={'projection': ccrs.LambertConformal(central_longitude = -20)})
@@ -140,7 +164,7 @@ for year in range(2010,2021):
         #Magnitude plot
         levels = np.linspace(0,35,30)
         cs = axs.contourf(lon,lat,current_magnitude, cmap = "cmo.speed",levels = levels, transform =ccrs.PlateCarree())
-            
+        plt.grid()
         #Vector plot
         axs.quiver(np.array(lon),np.array(lat),np.array(X_drift_av),np.array(Y_drift_av),scale = 400,transform = ccrs.PlateCarree())
         fig.colorbar(cs, ax=axs)

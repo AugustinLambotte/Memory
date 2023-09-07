@@ -8,7 +8,7 @@ import xarray as xr
 import pandas as pd
 from datetime import datetime, date, timedelta
 import cmocean
-
+import matplotlib.path as mpath
 """import rioxarray as riox
 from shapely.geometry import Polygon"""
 
@@ -74,13 +74,14 @@ def give_time_snapshot(year,month,day):
     time_snapshot = days_from_start/time_step
     return int(time_snapshot)
 
-def extracting_data(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [64,85], lon_range = [-40,20]):
+def extracting_data(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [64,80], lon_range = [-40,20]):
     """ 
         Given the file path "C:/.../..." to the .nc file it returns the longitude, latitude, sea_ice_thickness and time 
         restricted on the area defined by lat_range and lon_range
 
         output are in DataArray.
     """
+
     lon_min = lon_range[0]
     lon_max = lon_range[1]
     lat_min = lat_range[0]
@@ -92,6 +93,7 @@ def extracting_data(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaice
     sic = ds['Sea_Ice_Concentration'].where((ds.Sea_Ice_Thickness != 0) & (ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max))
     sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max))
     time =  ds['Time']
+    print(ds.attrs)
     ds.close
     return lon, lat, sit, sic, sit_uncertainty, time
 
@@ -146,14 +148,36 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
             for month in range(1,13):
                 date = [year,month]
                 print(f"### - Saving SIT: {date[0]}-{date[1]} - ###\n")
-                fig, axs = plt.subplots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
-                axs.set_extent([-70, 25, 55, 85], crs = ccrs.PlateCarree())
+                fig = plt.figure(figsize=figsize)
+                axs = plt.axes(projection = projection)
+                #fig, axs = plt.plots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
+                #axs.set_extent([-47, 16, 60, 85], crs = ccrs.PlateCarree())
+                
+                xlim = [-43, 16]
+                ylim = [61, 81]
+                lower_space = 3 
+                rect = mpath.Path([[xlim[0], ylim[0]],
+                                [xlim[1], ylim[0]],
+                                [xlim[1], ylim[1]],
+                                [xlim[0], ylim[1]],
+                                [xlim[0], ylim[0]],
+                                ]).interpolated(20)
+                proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+                rect_in_target = proj_to_data.transform_path(rect)
+                axs.set_boundary(rect_in_target)
+                axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+                
+                
+                
                 axs.coastlines()
                 axs.gridlines()
-                levels = np.linspace(0,7,1000)
+                levels = np.linspace(0,4,1000)
                 cs = axs.contourf(lon, lat, mensual_mean(date[0],date[1]), levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
-                axs.set_title("Mensual mean SIT value in meters for {}/{}".format(date[0],date[1]))
-                fig.colorbar(cs, ax = axs)
+                axs.set_title("Monthly averaged SIT value in meters for {}/{}".format(date[0],date[1]))
+                
+                cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0,0.02,axs.get_position().height])
+                fig.colorbar(cs, cax = cax, ticks = [0,1,2,3,4])
+                plt.grid
                 plt.savefig(f"Plots/mean/Sea_ice/{year}/SIT_mean_{date[0]}-{date[1]}.png")
     else:
         fig, axs = plt.subplots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
@@ -170,5 +194,9 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
     
 ##### - Main - #####
 lon, lat, sit, sic, sit_uncertainty, time = extracting_data()
-projection = ccrs.LambertConformal(central_longitude = -20)
+# The projection of the map
+""" myProj = ccrs.LambertConformal(central_longitude=-20)
+myProj._threshold = myProj._threshold/20.  # Set for higher precision of the projection
+projection = myProj """
+projection = ccrs.LambertConformal(central_longitude = -18)
 plot_mensual_mean(2015,5,projection,save = True)
