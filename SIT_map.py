@@ -74,7 +74,7 @@ def give_time_snapshot(year,month,day):
     time_snapshot = days_from_start/time_step
     return int(time_snapshot)
 
-def extracting_data(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [64,80], lon_range = [-40,20]):
+def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [65,80.5], lon_range = [-40,40]):
     """ 
         Given the file path "C:/.../..." to the .nc file it returns the longitude, latitude, sea_ice_thickness and time 
         restricted on the area defined by lat_range and lon_range
@@ -87,13 +87,20 @@ def extracting_data(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaice
     lat_min = lat_range[0]
     lat_max = lat_range[1]
     ds = xr.open_dataset(file, decode_times = False)
-    lon = ds['Longitude']
-    lat = ds['Latitude']
-    sit = ds['Sea_Ice_Thickness'].where((ds.Sea_Ice_Thickness != 0) & (ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)))
-    sic = ds['Sea_Ice_Concentration'].where((ds.Sea_Ice_Thickness != 0) & (ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)))
-    sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)))
+    lon = ds['Longitude'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    lat = ds['Latitude'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    sit = ds['Sea_Ice_Thickness']#.where((ds.Sea_Ice_Thickness != 0)&(ds.Sea_Ice_Concentration != 0)) 
+    sit = sit.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    sic = ds['Sea_Ice_Concentration']#.where((ds.Sea_Ice_Concentration != 0)& (ds.Sea_Ice_Thickness != 0)) 
+    sic = sic.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    """ plt.subplot(211)
+    plt.imshow(lon)
+    plt.subplot(212)
+    plt.imshow(sic.sel(t=10))
+    plt.show() """
+    sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     time =  ds['Time']
-    print(ds.attrs)
+    
     ds.close
     return lon, lat, sit, sic, sit_uncertainty, time
 
@@ -135,6 +142,7 @@ def mensual_mean(year, month):
         i += 1
     recorded_sit = np.array([sit.sel(t = n) * sic.sel(t = n) for n in useful_index])
     mean_sit = np.nanmean(recorded_sit, axis = 0) 
+    
     return mean_sit
 
 def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
@@ -167,12 +175,12 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
                 axs.set_boundary(rect_in_target)
                 axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
                 
-                
-                
                 axs.coastlines()
                 axs.gridlines()
                 levels = np.linspace(0,4,1000)
-                cs = axs.contourf(lon, lat, mensual_mean(date[0],date[1]), levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
+                mean = mensual_mean(date[0],date[1])
+                cs = axs.contourf(lon, lat, mean, levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
+                cs_ = axs.contour(lon, lat, mean,[0], colors = 'red', transform=ccrs.PlateCarree())
                 axs.set_title("Monthly averaged SIT value in meters for {}/{}".format(date[0],date[1]))
                 
                 cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0,0.02,axs.get_position().height])
@@ -191,11 +199,8 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
         fig.colorbar(cs, ax = axs)
         plt.show()
     
-##### - Main - #####
-lon, lat, sit, sic, sit_uncertainty, time = extracting_data()
-# The projection of the map
-""" myProj = ccrs.LambertConformal(central_longitude=-20)
-myProj._threshold = myProj._threshold/20.  # Set for higher precision of the projection
-projection = myProj """
-projection = ccrs.LambertConformal(central_longitude = -18)
-plot_mensual_mean(2015,5,projection,save = True)
+if __name__ == '__main__':
+    lon, lat, sit, sic, sit_uncertainty, time = extracting_data_sit()
+    # The projection of the map
+    projection = ccrs.LambertConformal(central_longitude = -18)
+    plot_mensual_mean(2015,5,projection,save = True)

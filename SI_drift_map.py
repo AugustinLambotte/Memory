@@ -9,19 +9,15 @@ import pandas as pd
 from scipy import interpolate
 from datetime import datetime, date, timedelta
 import cmocean
-
-
-def extracting_SI_drift(lat_range = [64,80], lon_range = [-40,20]):
+from SIT_map import extracting_data_sit
+year_ = 2010
+year_end = 2021
+def extracting_SI_drift(lat_range = [64,80.5], lon_range = [-40,20]):
     
     lon_min = lon_range[0]
     lon_max = lon_range[1]
     lat_min = lat_range[0]
     lat_max = lat_range[1]
-
-    #First, extracting the lat lon grid of sea ice thickness for the interpolation
-    ds_sit = xr.open_dataset("C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", decode_times = False)
-    sit_lat = ds_sit['Latitude'].where((ds_sit.Longitude > lon_min) & (ds_sit.Longitude < lon_max) & (ds_sit.Latitude > lat_min) & (ds_sit.Latitude < lat_max), drop = True)
-    sit_lon = ds_sit['Longitude'].where((ds_sit.Longitude > lon_min) & (ds_sit.Longitude < lon_max) & (ds_sit.Latitude > lat_min) & (ds_sit.Latitude < lat_max), drop = True)
 
     #print(ds.Latitude.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max), drop = True))
 
@@ -49,8 +45,8 @@ def extracting_SI_drift(lat_range = [64,80], lon_range = [-40,20]):
                     y2020 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),)
     dir = "C:/Users/Augustin/Downloads/osisaf.met.no/reprocessed/ice/drift_lr/v1/merged/"
     print("\n##### - Extracting Sea Ice drift data - #####\n")
-    for year in range(2010,2011):
-        for month in range(1,2):
+    for year in range(year_,year_end):
+        for month in range(1,13):
             print(f'{month}/{year}')
             if month ==1:
                 nb_days = 31
@@ -113,79 +109,101 @@ def extracting_SI_drift(lat_range = [64,80], lon_range = [-40,20]):
                 file =  dir+f"{year}" + "/" + f"{month:02d}" + f"/ice_drift_nh_ease2-750_cdr-v1p0_24h-{year}{month:02d}{day:02d}1200.nc"
                 ds = xr.open_dataset(file, decode_times = False)
                 
-                dX = ds['dX'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
-                dY = ds['dY'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
+                dX = ds['dX'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max) & (ds.lat > 65.4 + (76.5-65.4)/(9+17) * (ds.lon + 17)), drop = True)
+                dY = ds['dY'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max) & (ds.lat > 65.4 + (76.5-65.4)/(9+17) * (ds.lon + 17)), drop = True)
                 
                 dX = dX.sel(time = int(ds.time))
                 dY = dY.sel(time = int(ds.time))
-                if year == 2010:
+
+
+                if year == year_:
                     if month == 1:
                         if day == 1:
-                            lat = ds['lat'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
-                            lon = ds['lon'].where((ds.lon1 > lon_min) & (ds.lon1 < lon_max) & (ds.lat1 > lat_min) & (ds.lat1 < lat_max))
-                
-                            lat = lat.sel(time = 1, method = 'nearest')
-                            lon = lon.sel(time = 1, method = 'nearest')
-                print(np.shape(lat))            
+                            lat = ds['lat'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max) & (ds.lat > 65.4 + (76.5-65.4)/(9+17) * (ds.lon + 17)), drop = True)
+                            lon = ds['lon'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max) & (ds.lat > 65.4 + (76.5-65.4)/(9+17) * (ds.lon + 17)), drop = True)
                 ds.close
-                quit()
-                for i in range(len(dX)):
-                    for j in range(len(dX[i])):
-                        print(float(dX[i,j]))
-                quit()
+                
                 X_drift[f'y{year}'][month_name].append(dX)
                 Y_drift[f'y{year}'][month_name].append(dY)
-    ds_sit.close
+    
     return X_drift, Y_drift, lat, lon
 
-def mensual_mean(year, month):
+def mensual_mean(year, month, interpolated = False):
     month_names = ["jan", "feb", "mar", "april", "may", "june", "july", "aug", "sept", "oct","nov", "dec"]
-    print(np.shape(X_drift[f"y{year}"][f"{month_names[month-1]}"]))
-    """ for i in range(len(X_drift[f"y{year}"][f"{month_names[month-1]}"][0])):
-        for j in range(len(X_drift[f"y{year}"][f"{month_names[month-1]}"][0][i])):
-            print(float(X_drift[f"y{year}"][f"{month_names[month-1]}"][0][i][j])) """
+    print(year,month)
     X_drift_averaged = np.nanmean(X_drift[f"y{year}"][f"{month_names[month-1]}"], axis = 0)
     Y_drift_averaged = np.nanmean(Y_drift[f"y{year}"][f"{month_names[month-1]}"], axis = 0)
-    quit()
-    return X_drift_averaged, Y_drift_averaged
 
-##### - Main - ####
-
-X_drift, Y_drift, lat, lon = extracting_SI_drift()
-
-for year in range(2010,2011):
-    for month in range(1,2):
-        X_drift_av, Y_drift_av = mensual_mean(year,month)
-        current_magnitude = np.sqrt(X_drift_av**2 + Y_drift_av**2) * 1000/(24*60*60) #Passing from km/day in m/s
-        fig,axs = plt.subplots(figsize = (10,10), subplot_kw={'projection': ccrs.LambertConformal(central_longitude = -20)})
-        #axs.set_extent([-40, 11, 62, 85], crs = ccrs.PlateCarree())
+    
+    if interpolated:
+        #Interpolation over SIT grid
+        points = [] # list of length NxM containing all the coordinates [lat,lon] of all points from si drift map
+        values_dX = []
+        values_dY = []
+        for i in range(len(lat_drift)):
+            for j in range(len(lon_drift[0])):
+                if X_drift_averaged[i,j] !=0 and Y_drift_averaged[i,j] != 0 and not np.isnan(X_drift_averaged[i,j]) and not np.isnan(Y_drift_averaged[i,j]):
+                    points.append([lat_drift[i,j],lon_drift[i,j]])
+                    values_dX.append(X_drift_averaged[i,j])
+                    values_dY.append(Y_drift_averaged[i,j])
+        points = np.array(points)
+        values_dX = np.array(values_dX)
+        values_dY = np.array(values_dY)
+        dX_interp = interpolate.griddata(points, values_dX, (lat_sit, lon_sit), method='linear')
+        dY_interp = interpolate.griddata(points, values_dY, (lat_sit, lon_sit), method='linear')
         
-        xlim = [-43, 16]
-        ylim = [61, 81]
-        lower_space = 3 
-        rect = mpath.Path([[xlim[0], ylim[0]],
-                        [xlim[1], ylim[0]],
-                        [xlim[1], ylim[1]],
-                        [xlim[0], ylim[1]],
-                        [xlim[0], ylim[0]],
-                        ]).interpolated(20)
-        proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
-        rect_in_target = proj_to_data.transform_path(rect)
-        axs.set_boundary(rect_in_target)
-        axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
-        axs.coastlines()
-        axs.gridlines()
-        axs.set_title(f"Sea Ice mean drift in km/days during {month}/{year}")
-        #Magnitude plot
-        levels = np.linspace(0,35,30)
-        cs = axs.contourf(lon,lat,current_magnitude, cmap = "cmo.speed", transform =ccrs.PlateCarree())
-        plt.grid()
-        #Vector plot
-        axs.quiver(np.array(lon),np.array(lat),np.array(X_drift_av),np.array(Y_drift_av),scale = 400,transform = ccrs.PlateCarree())
-        fig.colorbar(cs, ax=axs)
-        plt.savefig(f"Plots/mean/Sea_ice_drift/{year}/SI_drift_{year}-{month}.png")
-        plt.clf()
+        return dX_interp, dY_interp, lon_sit, lat_sit
+    else:
+        return X_drift_averaged, Y_drift_averaged, lon_drift, lat_drift
 
-             
+if __name__ == "__main__":
+
+    X_drift, Y_drift, lat_drift, lon_drift = extracting_SI_drift()
+    lon_sit,lat_sit,_,_,_,_ = extracting_data_sit()
+    interpolated = True
+    for year in range(year_,year_end):
+        for month in range(1,13):
+            X_drift_av, Y_drift_av, lon,lat = mensual_mean(year,month,interpolated=interpolated)
+            current_magnitude = np.sqrt(X_drift_av**2 + Y_drift_av**2)
+            current_magnitude_ms = np.sqrt(X_drift_av**2 + Y_drift_av**2) * 1000/(24*60*60) #Passing from km/day in m/s
             
+            #fig = plt.figure(figsize=(10,10))
+            #axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -18))
+            
+            fig,axs = plt.subplots(figsize = (10,10), subplot_kw={'projection': ccrs.LambertConformal(central_longitude = -18)})
+            #axs.set_extent([-40, 11, 62, 85], crs = ccrs.PlateCarree())
+            
+            xlim = [-43, 16]
+            ylim = [61, 81]
+            lower_space = 3 
+            rect = mpath.Path([[xlim[0], ylim[0]],
+                            [xlim[1], ylim[0]],
+                            [xlim[1], ylim[1]],
+                            [xlim[0], ylim[1]],
+                            [xlim[0], ylim[0]],
+                            ]).interpolated(20)
+            proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+            rect_in_target = proj_to_data.transform_path(rect)
+            axs.set_boundary(rect_in_target)
+            axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+            axs.coastlines()
+            axs.gridlines()
+            axs.set_title(f"Sea Ice mean drift in [m/s] during {month}/{year}")
+            #Magnitude plot
+            levels = np.linspace(0,0.3,10)
+            cs = axs.contourf(lon,lat,current_magnitude_ms, cmap = "cmo.speed", levels = levels, transform =ccrs.PlateCarree())
+            #Vector plot
+            X_drift_av = X_drift_av/current_magnitude * 10
+            Y_drift_av = Y_drift_av/current_magnitude * 10
+            axs.quiver(np.array(lon),np.array(lat),np.array(X_drift_av),np.array(Y_drift_av),scale = 400,transform = ccrs.PlateCarree())
+            fig.colorbar(cs, ax=axs,ticks = [0,0.1,0.2,0.3])
+            if interpolated:
+                plt.savefig(f"Plots/mean/Sea_ice_drift/interpolated/{year}/SI_drift_{year}-{month}.png")
+            else:
+                plt.savefig(f"Plots/mean/Sea_ice_drift/Original/{year}/SI_drift_{year}-{month}.png")
+
+            plt.clf()
+    
+                
+                
 

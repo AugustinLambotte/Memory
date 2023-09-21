@@ -1,37 +1,36 @@
-from netCDF4 import Dataset
-import numpy as np
-import cartopy
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
-import matplotlib.path as mpath
 import xarray as xr
-import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import interpolate
 from datetime import datetime, date, timedelta
-import cmocean
+import matplotlib.path as mpath
+import cmocean as cmo
+import cartopy.crs as ccrs
 
-def extracting_SI_velocity(lat_range = [64,85], lon_range = [-40,20]):
 
-    print("\n###########################################")
-    print("##### - Extracting SI velocity data - #####")
-    print("###########################################\n")
+def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [78,80.5], lon_range = [-40,20]):
+    """ 
+        Given the file path "C:/.../..." to the .nc file it returns the longitude, latitude, sea_ice_thickness and time 
+        restricted on the area defined by lat_range and lon_range
 
-    u_si_file = "C:/Users/augustin/downloads/sea_ice_drift.txt"
+        output are in DataArray.
+    """
 
     lon_min = lon_range[0]
     lon_max = lon_range[1]
     lat_min = lat_range[0]
     lat_max = lat_range[1]
+    ds = xr.open_dataset(file, decode_times = False)
+    lon = ds['Longitude'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    lat = ds['Latitude'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    sit = ds['Sea_Ice_Thickness'].where((ds.Sea_Ice_Thickness != 0)) 
+    sit = sit.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    sic = ds['Sea_Ice_Concentration'].where((ds.Sea_Ice_Thickness != 0)) 
+    sic = sic.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
+    time =  ds['Time']
+    ds.close
+    return lon, lat, sit, sic, sit_uncertainty, time
 
-    u_ds = xr.open_dataset(u_si_file, decode_times = False)
-    print(u_ds)
-    usi= u_ds['usi'].where((u_ds.longitude > lon_min) & (u_ds.longitude < lon_max) & (u_ds.latitude > lat_min) & (u_ds.latitude < lat_max))
-    
-    lon = v_ds['longitude']
-    lat = v_ds['latitude']
-    time =  v_ds['time']
-
-    v_ds.close
-    u_ds.close
-    print("############ - Data extracted - ###########")
-    return lon, lat, usi, vsi, time
-extracting_SI_velocity()
+lon, lat, sit, sic, sit_uncertainty, time = extracting_data_sit()
+print(time)

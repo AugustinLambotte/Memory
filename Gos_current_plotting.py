@@ -27,7 +27,7 @@ def give_time_snapshot(year,month,day):
     time_snapshot = days_from_start/time_step
     return int(time_snapshot)
 
-def extracting_data(lat_range = [64,80], lon_range = [-40,20]):
+def extracting_data(lat_range = [65,80], lon_range = [-40,20]):
     """ 
         Given the file path "C:/.../..." to the .nc file it returns the longitude, latitude, sea_ice_thickness and time 
         restricted on the area defined by lat_range and lon_range
@@ -49,10 +49,10 @@ def extracting_data(lat_range = [64,80], lon_range = [-40,20]):
     
     u_gos= u_ds['uo'].where((u_ds.longitude > lon_min) & (u_ds.longitude < lon_max) & (u_ds.latitude > lat_min) & (u_ds.latitude > 65.4 + (76.5-65.4)/(9+17) * (u_ds.longitude + 17)) & (u_ds.latitude < lat_max))
     v_gos= v_ds['vo'].where((v_ds.longitude > lon_min) & (v_ds.longitude < lon_max) & (v_ds.latitude > lat_min) & (v_ds.latitude > 65.4 + (76.5-65.4)/(9+17) * (v_ds.longitude + 17)) & (v_ds.latitude < lat_max))
-
+    
     u_gos = u_gos.sel(depth = 0.494025)
     v_gos = v_gos.sel(depth = 0.494025)
-
+    
     lon = v_ds['longitude']
     lat = v_ds['latitude']
     time =  v_ds['time']
@@ -103,7 +103,7 @@ def save_plot_mar_sept(projection, figsize = (14,10), mean = True):
             ,[2016,9,15],[2017,3,15],[2017,9,15],[2018,3,15],[2018,9,15],[2019,3,15],[2019,9,15]]
     print("################################\n")
     
-    for year in range(2011,2021):
+    for year in range(2012,2013):
         for month in range(1,13):
             date = [year, month]
             print(f"### - Saving gos: {date[0]}-{date[1]} - ###\n")
@@ -169,9 +169,7 @@ def mensual_mean(year, month):
     mean_vgos = np.nanmean(recorded_vgos, axis = 0)
     return mean_ugos, mean_vgos
 
-
-
-#### - Main - ####
-lon, lat, u_gos,v_gos,time = extracting_data()
-projection = ccrs.LambertConformal(central_longitude = -18)
-save_plot_mar_sept(projection)
+if __name__ =='__main__':
+    lon, lat, u_gos,v_gos,time = extracting_data()
+    projection = ccrs.LambertConformal(central_longitude = -18)
+    save_plot_mar_sept(projection)
