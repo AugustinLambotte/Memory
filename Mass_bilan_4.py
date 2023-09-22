@@ -212,8 +212,8 @@ def extracting_SI_drift(lat_range = [78,82.5], lon_range = [-20,20]):
 
 if __name__ == '__main__':
     
-    year_ = 2017
-    year_end = 2018
+    year_ = 2011
+    year_end = 2021
     #X_drift, Y_drift, lat, lon = extracting_SI_drift()
     lon_sit,lat_sit, sit, sic, sit_uncertainty, sit_time, gate_marker= extracting_data_sit()
     X_drift, Y_drift, lat_drift, lon_drift = extracting_SI_drift()

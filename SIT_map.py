@@ -141,9 +141,10 @@ def mensual_mean(year, month):
             print(corresponding_date) 
         i += 1
     recorded_sit = np.array([sit.sel(t = n) * sic.sel(t = n) for n in useful_index])
+    recorded_sic = np.array([sic.sel(t = n) for n in useful_index])
     mean_sit = np.nanmean(recorded_sit, axis = 0) 
-    
-    return mean_sit
+    mean_sic = np.nanmean(recorded_sic, axis = 0)
+    return mean_sit,mean_sic
 
 def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
     """
@@ -152,7 +153,7 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
     if save:
         dates = [[2011,3,15],[2011,9,15],[2012,3,15],[2012,9,15],[2013,3,15],[2013,9,15],[2014,3,15],[2014,9,15],[2015,3,15],[2015,9,15],[2016,3,15]
                 ,[2016,9,15],[2017,3,15],[2017,9,15],[2018,3,15],[2018,9,15],[2019,3,15],[2019,9,15]]
-        for year in range(2011,2020):
+        for year in range(2014,2020):
             for month in range(1,13):
                 date = [year,month]
                 print(f"### - Saving SIT: {date[0]}-{date[1]} - ###\n")
@@ -178,13 +179,14 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
                 axs.coastlines()
                 axs.gridlines()
                 levels = np.linspace(0,4,1000)
-                mean = mensual_mean(date[0],date[1])
-                cs = axs.contourf(lon, lat, mean, levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
-                cs_ = axs.contour(lon, lat, mean,[0], colors = 'red', transform=ccrs.PlateCarree())
-                axs.set_title("Monthly averaged SIT value in meters for {}/{}".format(date[0],date[1]))
+                mean_sit,mean_sic = mensual_mean(date[0],date[1])
+                cs = axs.contourf(lon, lat, mean_sit, levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
+                cs_ = axs.contour(lon, lat, mean_sic,[0.15], colors = 'red', transform=ccrs.PlateCarree())
+                axs.set_title(" {} - {}".format(date[0],date[1]), fontsize = 30)
+                cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
                 
-                cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0,0.02,axs.get_position().height])
-                fig.colorbar(cs, cax = cax, ticks = [0,1,2,3,4])
+                cb = plt.colorbar(cs, cax = cax, ticks = [0,1,2,3,4])
+                cb.ax.tick_params(labelsize=25)
                 plt.savefig(f"Plots/mean/Sea_ice/{year}/SIT_mean_{date[0]}-{date[1]}.png")
     else:
         fig, axs = plt.subplots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})

@@ -98,12 +98,12 @@ def plot_current(year,month,day,projection = ccrs.LambertConformal(central_longi
     fig.colorbar(cs, ax=axs)
     plt.show()
 
-def save_plot_mar_sept(projection, figsize = (14,10), mean = True):
+def save_plot_mar_sept(projection, figsize = (9,7), mean = True):
     dates = [[2011,3,15],[2011,9,15],[2012,3,15],[2012,9,15],[2013,3,15],[2013,9,15],[2014,3,15],[2014,9,15],[2015,3,15],[2015,9,15],[2016,3,15]
             ,[2016,9,15],[2017,3,15],[2017,9,15],[2018,3,15],[2018,9,15],[2019,3,15],[2019,9,15]]
     print("################################\n")
     
-    for year in range(2012,2013):
+    for year in range(2011,2021):
         for month in range(1,13):
             date = [year, month]
             print(f"### - Saving gos: {date[0]}-{date[1]} - ###\n")
@@ -131,19 +131,20 @@ def save_plot_mar_sept(projection, figsize = (14,10), mean = True):
             axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
             axs.coastlines()
             axs.gridlines()
-            axs.set_title(f"{date[0]}-{date[1]} Surface gos current [m/s]")
+            axs.set_title(f"{date[0]} - {date[1]}",fontsize = 30)
             #Magnitude plot
             levels = np.linspace(0,0.6,10)
             cs = axs.contourf(lon,lat,current_magnitude, cmap = "cmo.speed", levels = levels,transform =ccrs.PlateCarree())
+            
             #Vector plot
-            #mymap = plt.streamplot(np.array(lon[:]),np.array(lat[:]),np.array(u_gos),np.array(v_gos), transform=ccrs.PlateCarree(), density=4)
             skip = (slice(None,None,12),slice(None,None,20))
             # vector normalization
             u_gos_norm = u_gos/current_magnitude * 5
             v_gos_norm = v_gos/current_magnitude * 5
             axs.quiver(np.array(lon.isel(dict(longitude=slice(None,None,20)))),np.array(lat.isel(dict(latitude=slice(None,None,12)))),u_gos_norm[skip],v_gos_norm[skip], transform = ccrs.PlateCarree())
-            fig.colorbar(cs, ax=axs, ticks = [0,0.1,0.2,0.3,0.4,0.5,0.6])
-
+            cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+            cb = plt.colorbar(cs, ax=axs,cax = cax, ticks = [0,0.1,0.2,0.3,0.4,0.5,0.6])
+            cb.ax.tick_params(labelsize=25)
             if mean == True:
                 plt.savefig(f"Plots/mean/Gos_current/{year}/GOS_{date[0]}-{date[1]}.png")
             else:

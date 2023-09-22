@@ -8,29 +8,27 @@ import cmocean as cmo
 import cartopy.crs as ccrs
 
 
-def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [78,80.5], lon_range = [-40,20]):
-    """ 
-        Given the file path "C:/.../..." to the .nc file it returns the longitude, latitude, sea_ice_thickness and time 
-        restricted on the area defined by lat_range and lon_range
+Ricker = np.array([[-267,-21,-540,-279,np.nan,np.nan,np.nan,np.nan,np.nan,-164,-214,-354],
+                  [-129,-381,-379,-487,np.nan,np.nan,np.nan,np.nan,np.nan,-203,-182,-187],
+                  [-103,-163,-299,-318,np.nan,np.nan,np.nan,np.nan,np.nan,-215,-400,-231],
+                  [-78,-195,-345,-452,np.nan,np.nan,np.nan,np.nan,np.nan,-200,-165,-373],
+                  [-160,-425,-429,-354,np.nan,np.nan,np.nan,np.nan,np.nan,-52,-261,-275],
+                  [-177,-352,-348,-310,np.nan,np.nan,np.nan,np.nan,np.nan,-129,-151,-307]])
+        
+M1 = np.array([[-238,-24,-478,-255,np.nan,np.nan,np.nan,np.nan,np.nan,-149,-163,-293],
+              [-109,-299,-287,-428,np.nan,np.nan,np.nan,np.nan,np.nan,-207,-157,-125],
+              [-80,-122,-254,-254,np.nan,np.nan,np.nan,np.nan,np.nan,-212,-372,-211],
+              [-49,-105,-240,-401,np.nan,np.nan,np.nan,np.nan,np.nan,-203,-122,-307],
+              [-129,-358,-328,-284,np.nan,np.nan,np.nan,np.nan,np.nan,-72,-215,-243],
+              [-129,-272,-255,-264,np.nan,np.nan,np.nan,np.nan,np.nan,-98,-90,-243]])
+        
+M2 = np.array([[-238,-34,-442,-230,-278,-185,-115,-64,-28,-151,-175,-290],
+              [-137,-300,-267,-372,-334,-218,-187,-131,-100,-160,-149,-136],
+              [-78,-109,-217,-219,-194,-140,-107,-98,-26,-228,-367,-191],
+              [-61,-114,-282,-425,-232,-161,-112,-184,-194,-170,-162,-283],
+              [-129,-355,-339,-308,-171,-240,-114,-11,-107,-78,-192,-244],
+              [-150,-267,-287,-289,-196,-194,-113,-198,-75,-97,-72,-222]])
 
-        output are in DataArray.
-    """
-
-    lon_min = lon_range[0]
-    lon_max = lon_range[1]
-    lat_min = lat_range[0]
-    lat_max = lat_range[1]
-    ds = xr.open_dataset(file, decode_times = False)
-    lon = ds['Longitude'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
-    lat = ds['Latitude'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
-    sit = ds['Sea_Ice_Thickness'].where((ds.Sea_Ice_Thickness != 0)) 
-    sit = sit.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
-    sic = ds['Sea_Ice_Concentration'].where((ds.Sea_Ice_Thickness != 0)) 
-    sic = sic.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
-    sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
-    time =  ds['Time']
-    ds.close
-    return lon, lat, sit, sic, sit_uncertainty, time
-
-lon, lat, sit, sic, sit_uncertainty, time = extracting_data_sit()
-print(time)
+np.savetxt('Data/Ricker',Ricker)
+np.savetxt('Data/M1',M1)
+np.savetxt('Data/M2',M2)

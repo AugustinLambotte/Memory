@@ -33,12 +33,12 @@ def mensual_mean(year, month):
 lon, lat, u_gos,v_gos,time = extracting_data()
 for year in range(2011,2021):
     for month in range(1,13):
-        print(f"### - Saving gos: {year}-{month} - ###\n")
+        print(f"### - Saving kin ene: {year}-{month} - ###\n")
         u, v = mensual_mean(year, month)
         
         kinetic_energy = 1/2 * (u**2 + v**2) #In [J/kg]
         
-        fig,axs = plt.subplots(figsize = (14,10), subplot_kw={'projection': ccrs.LambertConformal(central_longitude = -18)})
+        fig,axs = plt.subplots(figsize = (9,7), subplot_kw={'projection': ccrs.LambertConformal(central_longitude = -18)})
         #axs.set_extent([-40, 11, 62, 85], crs = ccrs.PlateCarree())
         xlim = [-43, 16]
         ylim = [61, 81]
@@ -55,11 +55,11 @@ for year in range(2011,2021):
         axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
         axs.coastlines()
         axs.gridlines()
-        axs.set_title(f"{year}-{month} Surface gos current - Kinetic energy [J/kg]")
+        axs.set_title(f"{year} - {month}",fontsize = 30)
         #Magnitude plot
         levels = np.linspace(0,0.2,10)
+        cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
         cs = axs.contourf(lon,lat,kinetic_energy, cmap = "cmo.speed",levels = levels,transform =ccrs.PlateCarree())
-        #Vector plot
-        #mymap = plt.streamplot(np.array(lon[:]),np.array(lat[:]),np.array(u_gos),np.array(v_gos), transform=ccrs.PlateCarree(), density=4)
-        fig.colorbar(cs, ax=axs, ticks = [0,0.1,0.2,0.3,0.4])
+        cb = plt.colorbar(cs, ax=axs, cax = cax,ticks = [0,0.1,0.2,0.3,0.4])
+        cb.ax.tick_params(labelsize=25)
         plt.savefig(f"Plots/mean/Kinetic_energy/{year}/GOS_kin_{year}-{month}.png")
