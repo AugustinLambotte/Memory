@@ -158,7 +158,7 @@ def extracting_SI_drift(lat_range = [78,82.5], lon_range = [-20,20]):
                         if day == 1:
                             lat = ds['lat'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max), drop = True)
                             lon = ds['lon'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max), drop = True)
-                            
+                          
                 ds.close
                 
                 #Interpolation over SIT grid
@@ -354,8 +354,7 @@ if __name__ == '__main__':
         plt.yticks(fontsize = 20)
         plt.xticks(fontsize = 20)
         plt.savefig(f"Plots/Fram_strait/5.0/Comparison/{year}_Mass_bilan.png")
-    np.savetxt('Data/Fram_strait_mass_bilan.txt',northward_transport * 1e-9)
-    quit()
+    
 
     plt.figure(figsize=(12,7))
     plt.plot([year for year in range(year_,year_end)],[np.nansum(northward_transport[year-year_,:])* 1e-9 for year in range(year_,year_end)],marker = 'v',color = 'blue',label = 'myself')

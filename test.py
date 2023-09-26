@@ -29,6 +29,6 @@ M2 = np.array([[-238,-34,-442,-230,-278,-185,-115,-64,-28,-151,-175,-290],
               [-129,-355,-339,-308,-171,-240,-114,-11,-107,-78,-192,-244],
               [-150,-267,-287,-289,-196,-194,-113,-198,-75,-97,-72,-222]])
 
-np.savetxt('Data/Ricker',Ricker)
-np.savetxt('Data/M1',M1)
-np.savetxt('Data/M2',M2)
+np.savetxt('Data/Ricker.txt',Ricker)
+np.savetxt('Data/M1.txt',M1)
+np.savetxt('Data/M2.txt',M2)
