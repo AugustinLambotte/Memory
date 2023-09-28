@@ -158,7 +158,7 @@ def extracting_SI_drift(lat_range = [78,82.5], lon_range = [-20,20]):
                         if day == 1:
                             lat = ds['lat'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max), drop = True)
                             lon = ds['lon'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max), drop = True)
-                          
+                
                 ds.close
                 
                 #Interpolation over SIT grid

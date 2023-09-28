@@ -34,13 +34,13 @@ def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_se
     """ plt.subplot(311)
     plt.imshow() """
 
-    """ #Keeping data only on the gate
+    #Keeping data only on the gate
     gate_lat = 80
     gate_marker = np.zeros(lat.shape)
     for i in range(len(lat)):
         gate_marker[i,int((abs(lat[i,:]-gate_lat).argmin()))] = 1
     
-    
+    """
     lat = lat.where((gate_marker == 1))
     sit = sit.where((gate_marker == 1))
     sic = sic.where((gate_marker == 1))
@@ -80,6 +80,8 @@ def extracting_SI_drift(lat_range = [60,83], lon_range = [-40,20]):
                     y2018 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),
                     y2019 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),
                     y2020 = dict(jan = [], feb = [], mar = [], april = [], may = [], june = [], july = [], aug = [], sept = [], oct = [], nov =[], dec = []),)
+    
+    
     dir = "C:/Users/Augustin/Downloads/osisaf.met.no/reprocessed/ice/drift_lr/v1/merged/"
     print("\n##### - Extracting Sea Ice drift data - #####\n")
     for year in range(year_,year_end):
