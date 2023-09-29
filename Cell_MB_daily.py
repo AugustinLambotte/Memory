@@ -6,7 +6,8 @@ import cartopy.crs as ccrs
 import matplotlib.path as mpath
 import cmocean
 from datetime import date, timedelta
-from scipy import interpolate
+from scipy import interpolate,fft
+
 
 #Extracting data
 def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", daily_interpolation = False,lat_range = [60,83], lon_range = [-40,20],area_lat = [75,77.5], area_lon = [-10,0]):
@@ -30,22 +31,28 @@ def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_se
     sic = sic.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     time =  ds['Time']
-    
-    interp_sit = interpolate.interp1d(time,sit,axis = 0,kind = 'slinear')
-    interp_sic = interpolate.interp1d(time,sic,axis = 0,kind = 'slinear')
+
+    #Interpolation to daily resolution
+    interp_sit = interpolate.interp1d(time,sit,axis = 0,kind = 'linear', assume_sorted = True)
+    interp_sic = interpolate.interp1d(time,sic,axis = 0,kind = 'linear', assume_sorted = True)
     sit = interp_sit(np.arange(float(time[0]),float(time[-1])+1))
     sic = interp_sic(np.arange(float(time[0]),float(time[-1])+1))
     time = np.arange(float(time[0]),float(time[-1])+1)
     
-    
+
     #Keeping data only on the area of interest
     
-    area_marker = np.where((lat>=area_lat[0]) & (lat<=area_lat[1]) & (lon>=area_lon[0]) & (lon<=area_lon[1]),1,0)
+    area_marker = np.where((lat>=area_lat[0]) & (lat<=area_lat[1]) & (lon>=area_lon[0]) & (lon<=area_lon[1]),1,np.nan)
     
-    lat = np.where(area_marker == 1,lat,np.nan)
+    """ lat = np.where(area_marker == 1,lat,np.nan)
     sit = np.where(area_marker == 1,sit,np.nan)
     sic = np.where(area_marker == 1,sic,np.nan)
-    lon = np.where(area_marker == 1,lon,np.nan)
+    lon = np.where(area_marker == 1,lon,np.nan) """
+
+    lat = np.array(lat)
+    sit = np.array(sit)
+    sic = np.array(sic)
+    lon = np.array(lon)
     ds.close
     return lon, lat, sit, sic, sit_uncertainty, time, area_marker
 
@@ -81,75 +88,66 @@ def Net_transport_cell(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
     for year in range(year_,year_end):
         for month in month_names:
             for file in os.listdir(f'Data/X_drift/{year}/{month}'):
-                X_drift[f'y{year}'][month].append(np.where(area_marker == 1,np.loadtxt(f'Data/X_drift/{year}/{month}/' + file),np.nan))
-                Y_drift[f'y{year}'][month].append(np.where(area_marker == 1,np.loadtxt(f'Data/Y_drift/{year}/{month}/' + file),np.nan))
-
-    northward_transport = np.zeros((year_end -year_,12))
-    southward_transport = np.zeros((year_end -year_,12))
-    eastward_transport = np.zeros((year_end -year_,12))
-    westward_transport = np.zeros((year_end -year_,12))
+                X_drift[f'y{year}'][month].append(np.loadtxt(f'Data/X_drift/{year}/{month}/' + file))
+                Y_drift[f'y{year}'][month].append(np.loadtxt(f'Data/Y_drift/{year}/{month}/' + file))
+    
     Cell_net_transport_daily = []
     for year in range(year_,year_end):
         Cell_net_transport_daily.append([])
-        for month in range(1,13):
-            Cell_net_transport_daily[-1].append([])
-            month_names = ["jan", "feb", "mar", "april", "may", "june", "july", "aug", "sept", "oct","nov", "dec"]
-            useful_index = []
-            day_of_month_with_sit_data = []
+        useful_index = []
+        day_of_year_with_sit_data = []
+        i = 0
+        starting_date = 734419
+        for time_ in time:
+            corresponding_date = date(2010,10,1) + timedelta(days = int(time_)-starting_date)
+            if corresponding_date.year == year:
+                
+                useful_index.append(i)
+                day_of_year_with_sit_data.append(corresponding_date.day)
+            i += 1
+        # All the sit data_array for the month of interest are merged in the following array
+        recorded_sit = np.array([sit[n] * sic[n] for n in useful_index])
+        recorded_si_drift_X = np.zeros(np.shape(recorded_sit))
+        recorded_si_drift_Y = np.zeros(np.shape(recorded_sit))
+        j=0
+        for month in range(12):
             i = 0
-            starting_date = 734419
-            for time_ in time:
-                corresponding_date = date(2010,10,1) + timedelta(days = int(time_)-starting_date)
-                if corresponding_date.year == year and corresponding_date.month == month:
-                    useful_index.append(i)
-                    day_of_month_with_sit_data.append(corresponding_date.day)
+            while i +1 != len(X_drift[f"y{year}"][month_names[month]][:]):
+                recorded_si_drift_X[j] = X_drift[f"y{year}"][month_names[month]][i] 
+                recorded_si_drift_Y[j] = Y_drift[f"y{year}"][month_names[month]][i] 
                 i += 1
+                j += 1
 
-            # All the sit data_array for the month of interest are merged in the following array
-            recorded_sit = np.array([sit[n] * sic[n] for n in useful_index])
-            recorded_si_drift_X = np.array(X_drift[f"y{year}"][month_names[month-1]][:]) 
-            recorded_si_drift_Y = np.array(Y_drift[f"y{year}"][month_names[month-1]][:]) 
 
+        for day in range(len(recorded_sit)):
             northward_si_drift = np.zeros(np.shape(recorded_si_drift_X[0]))
             southward_si_drift = np.zeros(np.shape(recorded_si_drift_X[0]))
             eastward_si_drift = np.zeros(np.shape(recorded_si_drift_X[0]))
             westward_si_drift = np.zeros(np.shape(recorded_si_drift_X[0]))
 
-                        
-            for day in range(len(recorded_sit)):
-                for line in range(len(recorded_sit[day])):
-                    for col in range(len(recorded_sit[day][0])):
-                        if not np.isnan(recorded_sit[day][line,col]) and np.isnan(recorded_sit[day][line-1,col]): #in this case we are in the northerest side of the cell
-                            northward_si_drift[line,col] = recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
-                        
-                        if not np.isnan(recorded_sit[day][line,col]) and np.isnan(recorded_sit[day][line,col-1]): #in this case we are in the westerest side of the cell
-                            westward_si_drift[line,col] = recorded_si_drift_X[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360)
+            for line in range(len(recorded_sit[day])-1):
+                for col in range(len(recorded_sit[day][0])-1): #The minus one for col and line are to handle "effet de bords" when accessing area_marker[line+1,col] for example: ATTENTION it will cause lack of data if area marker is on the edge of the map
+                    if np.isnan(area_marker[line,col]) and not np.isnan(area_marker[line+1,col]): #in this case we are in the northerest side of the cell
+                        northward_si_drift[line,col] = recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
+                    
+                    if np.isnan(area_marker[line,col]) and not np.isnan(area_marker[line,col+1]): #in this case we are in the westerest side of the cell
+                        westward_si_drift[line,col] = recorded_si_drift_X[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360)
 
-                        if not np.isnan(recorded_sit[day][line,col]) and np.isnan(recorded_sit[day][line,col+1]): #in this case we are in the easterest side of the cell
-                            eastward_si_drift[line,col] = -(recorded_si_drift_X[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360))
-                        
-                        if not np.isnan(recorded_sit[day][line,col]) and np.isnan(recorded_sit[day][line+1,col]): #in this case we are in the southerest side of the cell
-                            southward_si_drift[line,col] = - recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) - recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
-                
-                #Transport_ are array covering the same surface as recorded_si_drift and recorded_si_drift. Where there is sea ice drift data, the cell is filled with siv*si_drift.
-                northward_transport_current = np.where(abs(northward_si_drift) >0 , northward_si_drift*1000 * recorded_sit[day], np.nan)
-                southward_transport_current = np.where(abs(southward_si_drift) >0 , southward_si_drift*1000 * recorded_sit[day], np.nan)
-                eastward_transport_current = np.where(abs(eastward_si_drift) >0 , eastward_si_drift*1000 * recorded_sit[day], np.nan)
-                westward_transport_current = np.where(abs(westward_si_drift) >0 , westward_si_drift*1000 * recorded_sit[day], np.nan)
+                    if np.isnan(area_marker[line,col]) and not np.isnan(area_marker[line,col-1]): #in this case we are in the easterest side of the cell
+                        eastward_si_drift[line,col] = -(recorded_si_drift_X[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360))
+                    
+                    if np.isnan(area_marker[line,col]) and not np.isnan(area_marker[line-1,col]): #in this case we are in the southerest side of the cell
+                        southward_si_drift[line,col] = - recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) - recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
+            
+            #Transport_ are array covering the same surface as recorded_si_drift and recorded_si_drift. Where there is sea ice drift data, the cell is filled with siv*si_drift.
+            northward_transport_current = np.where(abs(northward_si_drift) >0 , northward_si_drift*1000 * recorded_sit[day], np.nan)
+            southward_transport_current = np.where(abs(southward_si_drift) >0 , southward_si_drift*1000 * recorded_sit[day], np.nan)
+            eastward_transport_current = np.where(abs(eastward_si_drift) >0 , eastward_si_drift*1000 * recorded_sit[day], np.nan)
+            westward_transport_current = np.where(abs(westward_si_drift) >0 , westward_si_drift*1000 * recorded_sit[day], np.nan)
 
-                northward_transport[year-year_,month-1] += np.nansum(northward_transport_current * 80000)
-                southward_transport[year-year_,month-1] += np.nansum(southward_transport_current * 80000)
-                eastward_transport[year-year_,month-1] += np.nansum(eastward_transport_current * 80000)
-                westward_transport[year-year_,month-1] += np.nansum(westward_transport_current * 80000)
-
-                Cell_net_transport_daily[-1][-1].append(np.nansum(northward_transport_current * 80000)+ np.nansum(southward_transport_current * 80000) + np.nansum(eastward_transport_current * 80000) + np.nansum(westward_transport_current * 80000))
-    #Flattening the month in order to just have [nb_year]x[nb_days] array
-    flatten = []
-    for year in range(year_,year_end):
-        flatten.append([transp for month in Cell_net_transport_daily[year-year_] for transp in month])
-    #np.savetxt('Data/'+name+'/Cell_'+name[-1]+'_MB.txt',Cell_net_transport)
-    
-    return flatten
+            Cell_net_transport_daily[-1].append(np.nansum(northward_transport_current * 80000)+ np.nansum(southward_transport_current * 80000) + np.nansum(eastward_transport_current * 80000) + np.nansum(westward_transport_current * 80000))
+        
+    return Cell_net_transport_daily
 
 def cell_mass_bilan(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
     """
@@ -165,17 +163,17 @@ def cell_mass_bilan(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
         Sea_ice_melt_on_the_cell.append([])
         SIV_variation_daily.append([])
         useful_index = []
-        day_of_month_with_sit_data = []
+        day_of_year_with_sit_data = []
         i = 0
         starting_date = 734419
         for time_ in time:
             corresponding_date = date(2010,10,1) + timedelta(days = int(time_)-starting_date)
             if corresponding_date.year == year:
                 useful_index.append(i)
-                day_of_month_with_sit_data.append(corresponding_date.day)
+                day_of_year_with_sit_data.append(corresponding_date.day)
             i += 1
         # All the sit data_array for the month of interest are merged in the following array
-        recorded_sit = np.array([sit[n] * sic[n] for n in useful_index])
+        recorded_sit = np.array([np.where(area_marker == 1, sit[n] * sic[n],np.nan) for n in useful_index])
         for day in range(1,len(recorded_sit)):
             SIV_variation = (np.nansum(recorded_sit[day])-np.nansum(recorded_sit[day-1])) * 80000**2 #[m^3] positive when sea ice volume increase over the cell
             Sea_ice_melt_on_the_cell[-1].append((cell_net_transport_daily[year-year_][day] - SIV_variation)*1e-9) #[km^3] positive when sea ice melt, negative when sea ice form (could be seen as fresh water flux through water)
@@ -189,9 +187,8 @@ def cell_mass_bilan(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
             saving_format[year-year_,day] = Sea_ice_melt_on_the_cell[year-year_][day]
 
             
-    np.savetxt('Data/'+name+'/Cell_'+name[-1]+'_MB_daily.txt',saving_format)
+    np.savetxt('Data/'+name+'/Cell_'+name[-1]+'_MB_daily2.txt',saving_format)
     return Sea_ice_melt_on_the_cell
-
 year_, year_end = 2011,2020
 cell_mass_bilan(name = 'Cell_A',area_lat=[77.5,80],area_lon = [-10,0])
 cell_mass_bilan(name = 'Cell_B',area_lat=[75,77.5],area_lon = [-10,0])

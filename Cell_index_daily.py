@@ -40,6 +40,7 @@ def extracting_data(area_lat = [75,77.5], area_lon = [-10,0]):
     lon = v_ds['longitude']
     lat = v_ds['latitude']
     time =  v_ds['time']
+    print(u_ds.attrs)
     v_ds.close
     u_ds.close
 
@@ -58,17 +59,19 @@ def index_cell(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
         # Retrieve all the time index corresponding to the month of interest.
         useful_index = []
         i = 0
+        
         for time_ in time:
             corresponding_date = date(1950,1,1) + timedelta(hours = int(time_)) 
             if corresponding_date.year == year:
                 useful_index.append(i)
+
             i+=1
         # Creation of an array with all the data during the year of interest
         recorded_ugos = np.array([u_gos.isel(time = n) for n in useful_index])
         recorded_vgos = np.array([v_gos.isel(time = n) for n in useful_index])
         for day in range(len(recorded_ugos)):
             kinetic_energy[-1].append(np.nanmean(1/2 * (recorded_ugos[day]**2 + recorded_vgos[day]**2))) #In [J/kg]
-    
+        print(len(kinetic_energy[-1]))
     #Turn in format with regular shape numpy array in order to be able to save it
     saving_format = np.zeros((2020-2011,366))
     saving_format[:] = np.nan
@@ -76,7 +79,7 @@ def index_cell(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
         for day in range(len(kinetic_energy[year-2011])):
             saving_format[year-2011,day] = kinetic_energy[year-2011][day]
 
-    np.savetxt("Data/"+name+"/Cell_"+name[-1]+"_index_daily.txt",saving_format)      
+    #np.savetxt("Data/"+name+"/Cell_"+name[-1]+"_index_daily.txt",saving_format)      
     
 index_cell(name = 'Cell_A',area_lat=[77.5,80],area_lon = [-10,0])
 index_cell(name = 'Cell_B',area_lat=[75,77.5],area_lon = [-10,0])
