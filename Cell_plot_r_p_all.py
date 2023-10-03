@@ -36,10 +36,16 @@ plt.suptitle('Correlation and p_value between sea ice melt\n and mean kinetic en
 for cell in Cell_name:    
     r = np.loadtxt('Data/'+cell+'/'+cell+'_r_daily2.txt')
     p = np.loadtxt('Data/'+cell+'/'+cell+'_p_daily2.txt')
-    plt.subplot(121)
-    plt.plot(np.arange(2011,2020),r,label = cell)
-    plt.subplot(122)
-    plt.plot(np.arange(2011,2020),p,label = cell)
+    if cell == 'Cell_B':
+        plt.subplot(121)
+        plt.plot(np.arange(2011,2020),r,label = cell,linewidth = 3.5)
+        plt.subplot(122)
+        plt.plot(np.arange(2011,2020),p,label = cell,linewidth = 3.5)
+    else:
+        plt.subplot(121)
+        plt.plot(np.arange(2011,2020),r,label = cell)
+        plt.subplot(122)
+        plt.plot(np.arange(2011,2020),p,label = cell)
 plt.legend(fontsize = "15")
 plt.grid()
 plt.xlabel('year',fontdict = {'fontsize':20})

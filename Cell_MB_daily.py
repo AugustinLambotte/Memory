@@ -124,11 +124,12 @@ def Net_transport_cell(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
             southward_si_drift = np.zeros(np.shape(recorded_si_drift_X[0]))
             eastward_si_drift = np.zeros(np.shape(recorded_si_drift_X[0]))
             westward_si_drift = np.zeros(np.shape(recorded_si_drift_X[0]))
-
+            
+            
             for line in range(len(recorded_sit[day])-1):
                 for col in range(len(recorded_sit[day][0])-1): #The minus one for col and line are to handle "effet de bords" when accessing area_marker[line+1,col] for example: ATTENTION it will cause lack of data if area marker is on the edge of the map
                     if np.isnan(area_marker[line,col]) and not np.isnan(area_marker[line+1,col]): #in this case we are in the northerest side of the cell
-                        northward_si_drift[line,col] = recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
+                        northward_si_drift[line,col] = recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) - recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
                     
                     if np.isnan(area_marker[line,col]) and not np.isnan(area_marker[line,col+1]): #in this case we are in the westerest side of the cell
                         westward_si_drift[line,col] = recorded_si_drift_X[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360)
@@ -137,7 +138,7 @@ def Net_transport_cell(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
                         eastward_si_drift[line,col] = -(recorded_si_drift_X[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360))
                     
                     if np.isnan(area_marker[line,col]) and not np.isnan(area_marker[line-1,col]): #in this case we are in the southerest side of the cell
-                        southward_si_drift[line,col] = - recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) - recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
+                        southward_si_drift[line,col] = - recorded_si_drift_X[day][line,col] * np.sin(lon[line,col] * 2*np.pi/360) + recorded_si_drift_Y[day][line,col] * np.cos(lon[line,col] * 2*np.pi/360)
             
             #Transport_ are array covering the same surface as recorded_si_drift and recorded_si_drift. Where there is sea ice drift data, the cell is filled with siv*si_drift.
             northward_transport_current = np.where(abs(northward_si_drift) >0 , northward_si_drift*1000 * recorded_sit[day], np.nan)
@@ -159,7 +160,9 @@ def cell_mass_bilan(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
     SIV_variation_daily = []
     cell_net_transport_daily = Net_transport_cell(name =name,area_lat = area_lat, area_lon = area_lon) #[m^3] positive when net import of sea ice on the cell
     Sea_ice_melt_on_the_cell = []
+    print(name)
     for year in range(year_,year_end):
+        print(year)
         Sea_ice_melt_on_the_cell.append([])
         SIV_variation_daily.append([])
         useful_index = []
@@ -169,6 +172,9 @@ def cell_mass_bilan(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
         for time_ in time:
             corresponding_date = date(2010,10,1) + timedelta(days = int(time_)-starting_date)
             if corresponding_date.year == year:
+                if len(useful_index) == 0:
+                    #Before taking the first day of the year we take the last day of the previous year in order to take the net SIV change for the first day of the year.
+                    useful_index.append(i-1)
                 useful_index.append(i)
                 day_of_year_with_sit_data.append(corresponding_date.day)
             i += 1
@@ -176,11 +182,11 @@ def cell_mass_bilan(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
         recorded_sit = np.array([np.where(area_marker == 1, sit[n] * sic[n],np.nan) for n in useful_index])
         for day in range(1,len(recorded_sit)):
             SIV_variation = (np.nansum(recorded_sit[day])-np.nansum(recorded_sit[day-1])) * 80000**2 #[m^3] positive when sea ice volume increase over the cell
-            Sea_ice_melt_on_the_cell[-1].append((cell_net_transport_daily[year-year_][day] - SIV_variation)*1e-9) #[km^3] positive when sea ice melt, negative when sea ice form (could be seen as fresh water flux through water)
+            Sea_ice_melt_on_the_cell[-1].append((cell_net_transport_daily[year-year_][day-1] - SIV_variation)*1e-9) #[km^3] positive when sea ice melt, negative when sea ice form (could be seen as fresh water flux through water)
             SIV_variation_daily[-1].append(SIV_variation)
 
     #Turn in format with regular shape numpy array in order to be able to save it
-    saving_format = np.zeros((year_end-year_,365))
+    saving_format = np.zeros((year_end-year_,366))
     saving_format[:] = np.nan
     for year in range(year_,year_end):
         for day in range(len(Sea_ice_melt_on_the_cell[year-year_])):

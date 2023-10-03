@@ -33,7 +33,7 @@ for cell in Cell_name:
         fig = plt.figure()
         ax1 = plt.axes()
         ax2 = plt.twinx()
-        ax1.set_xlabel('month')
+        ax1.set_xlabel('days')
         ax1.set_ylabel('J/kg',color = 'red')
         ax2.set_ylabel('km^3',color = 'blue')
         ax1.tick_params(axis = 'y', color = 'red', labelcolor = 'red')
@@ -48,6 +48,5 @@ for cell in Cell_name:
         
         fig.suptitle(f'{cell} - {year+2011}')
         ax1.grid()
-        #plt.show()
         plt.savefig(f'Plots/Correlation/4_cell/{cell}/{year+2011}_index_and_MB.png')
         plt.close()

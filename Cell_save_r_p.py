@@ -11,11 +11,11 @@ for cell in Cell_name:
     p = [] #p_value
     for year in range(len(Index)):
         if year == 1 or year == 5: #Bisextile year
-            r.append(stats.pearsonr(Index[year,1:],MB[year,:])[0])
-            p.append(stats.pearsonr(Index[year,1:],MB[year,:])[1])
+            r.append(stats.pearsonr(Index[year,:],MB[year,:])[0])
+            p.append(stats.pearsonr(Index[year,:],MB[year,:])[1])
         else:
-            r.append(stats.pearsonr(Index[year,1:-1],MB[year,:-1])[0])
-            p.append(stats.pearsonr(Index[year,1:-1],MB[year,:-1])[1])
+            r.append(stats.pearsonr(Index[year,:-1],MB[year,:-1])[0])
+            p.append(stats.pearsonr(Index[year,:-1],MB[year,:-1])[1])
     r = np.array(r)  
     p = np.array(p)  
     np.savetxt('Data/'+cell+'/'+cell+'_r_daily2.txt',r)

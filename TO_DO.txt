@@ -1,4 +1,1 @@
-Mass bilan/index boxes
 North gate
-A la place d'interpoler temporellement la sit sur le mois - ce qui conduit à des effets de bord non désirables - interpoler sur toute l'année.
-    Une fois cette interpolation faite on pourra faire le bilan massique des cellules de manière plus précise.
