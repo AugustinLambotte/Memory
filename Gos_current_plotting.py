@@ -46,7 +46,8 @@ def extracting_data(lat_range = [65,80], lon_range = [-40,20]):
     
     v_ds = xr.open_dataset(v_file, decode_times = False)
     u_ds = xr.open_dataset(u_file, decode_times = False)
-    
+    print(u_ds.attrs)
+    quit()
     u_gos= u_ds['uo'].where((u_ds.longitude > lon_min) & (u_ds.longitude < lon_max) & (u_ds.latitude > lat_min) & (u_ds.latitude > 65.4 + (76.5-65.4)/(9+17) * (u_ds.longitude + 17)) & (u_ds.latitude < lat_max))
     v_gos= v_ds['vo'].where((v_ds.longitude > lon_min) & (v_ds.longitude < lon_max) & (v_ds.latitude > lat_min) & (v_ds.latitude > 65.4 + (76.5-65.4)/(9+17) * (v_ds.longitude + 17)) & (v_ds.latitude < lat_max))
     

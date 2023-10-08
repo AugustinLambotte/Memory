@@ -9,7 +9,7 @@ import cartopy.crs as ccrs
 import scipy
 import os 
 """
-    This script interpol the sea ice drift data over the sit grid and save it in ./Data
+    This script interpol the sea ice drift data over the sit grid and with a daily resolution (the original resolution of this dataset) save it in ./Data
 """
 def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [60,83], lon_range = [-40,20]):
     """ 

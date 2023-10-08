@@ -1,1 +1,2 @@
 North gate
+Verification any cell is at the edge of the map in cell_mb_daily

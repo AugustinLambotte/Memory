@@ -7,8 +7,3 @@ import matplotlib.path as mpath
 import cmocean as cmo
 import cartopy.crs as ccrs
 
-plt.style.use('Plots\one_plot.mplstyle')
-
-plt.plot([0,1],[0,1])
-plt.title('Test')
-plt.show()

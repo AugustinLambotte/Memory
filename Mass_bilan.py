@@ -29,8 +29,13 @@ def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_se
     sic = sic.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     time =  ds['Time']
-    """ plt.subplot(311)
-    plt.imshow() """
+
+    #Interpolation to daily resolution
+    interp_sit = interpolate.interp1d(time,sit,axis = 0,kind = 'linear', assume_sorted = True)
+    interp_sic = interpolate.interp1d(time,sic,axis = 0,kind = 'linear', assume_sorted = True)
+    sit = interp_sit(np.arange(float(time[0]),float(time[-1])+1))
+    sic = interp_sic(np.arange(float(time[0]),float(time[-1])+1))
+    time = np.arange(float(time[0]),float(time[-1])+1)
 
     #Keeping data only on the gate
     gate_lat = 80
@@ -39,10 +44,10 @@ def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_se
         gate_marker[i,int((abs(lat[i,:]-gate_lat).argmin()))] = 1
     
     
-    lat = lat.where((gate_marker == 1))
-    sit = sit.where((gate_marker == 1))
-    sic = sic.where((gate_marker == 1))
-    lon = lon.where((gate_marker == 1))
+    lat = np.where(gate_marker == 1,lat,np.nan)
+    sit = np.where(gate_marker == 1,sit,np.nan)
+    sic = np.where(gate_marker == 1,sic,np.nan)
+    lon = np.where(gate_marker == 1,lon,np.nan)
     
 
     ds.close
@@ -219,8 +224,8 @@ if __name__ == '__main__':
     #X_drift, Y_drift, lat, lon = extracting_SI_drift()
     lon_sit,lat_sit, sit, sic, sit_uncertainty, sit_time, gate_marker= extracting_data_sit()
     X_drift, Y_drift, lat_drift, lon_drift = extracting_SI_drift()
-    X_sit,Y_sit = np.meshgrid(sit.x,sit.y)
-    X_dri,Y_dri = np.meshgrid(lat_drift.xc,lat_drift.yc)
+    """ X_sit,Y_sit = np.meshgrid(sit.x,sit.y)
+    X_dri,Y_dri = np.meshgrid(lat_drift.xc,lat_drift.yc) """
     northward_transport = np.zeros((year_end -year_,12))
     for year in range(year_,year_end):
         for month in range(1,13):
@@ -239,11 +244,10 @@ if __name__ == '__main__':
                     day_of_month_with_sit_data.append(corresponding_date.day)
                 i += 1
             # All the sit data_array for the month of interest are merged in the following array
-            recorded_sit = np.array([sit.sel(t = n) * sic.sel(t = n) for n in useful_index])
+            recorded_sit = np.array([sit[n] * sic[n] for n in useful_index])
             recorded_si_drift_X = np.array(X_drift[f"y{year}"][month_names[month-1]][:]) 
             recorded_si_drift_Y = np.array(Y_drift[f"y{year}"][month_names[month-1]][:]) 
-               
-            def interp_sit_daily():
+            """ def interp_sit_daily():
                 if month ==1:
                     nb_days = 31
                     month_name = "jan"
@@ -306,12 +310,12 @@ if __name__ == '__main__':
                     return [recorded_sit[0] for day in range(nb_days)]
                 else:
                     interp = interpolate.interp1d(day_of_month_with_sit_data,recorded_sit,axis = 0, bounds_error = False, fill_value = (recorded_sit[0],recorded_sit[-1]))
-                    return interp([day for day in range(1,nb_days+1)])
+                    return interp([day for day in range(1,nb_days+1)]) """
             
-            daily_interp_sit = interp_sit_daily()
+            daily_interp_sit = recorded_sit
             for day in range(len(recorded_si_drift_X)):
 
-                northward_si_drift = recorded_si_drift_X[day] * np.sin(lon_sit * 2*np.pi/360) + recorded_si_drift_Y[day] * np.cos(lon_sit * 2*np.pi/360)
+                northward_si_drift = -recorded_si_drift_X[day] * np.sin(lon_sit * 2*np.pi/360) + recorded_si_drift_Y[day] * np.cos(lon_sit * 2*np.pi/360)
 
                 #Transport is an array covering the same surface as recorded_si_drift and recorded_si_drift. Where there is sea ice drift data, the cell is filled with siv*si_drift.
                 transport = np.where(abs(northward_si_drift) >0 , northward_si_drift * daily_interp_sit[day], np.nan)
@@ -353,8 +357,9 @@ if __name__ == '__main__':
         plt.ylabel('[km^3]',fontdict = {'fontsize':20})
         plt.yticks(fontsize = 20)
         plt.xticks(fontsize = 20)
-        plt.savefig(f"Plots/Fram_strait/5.0/Comparison/{year}_Mass_bilan.png")
+        plt.savefig(f"Plots/Fram_strait/7.0/{year}_Mass_bilan.png")
     
+    np.savetxt('Data/Fram_strait_mass_bilan2.txt',northward_transport)
 
     plt.figure(figsize=(12,7))
     plt.plot([year for year in range(year_,year_end)],[np.nansum(northward_transport[year-year_,:])* 1e-9 for year in range(year_,year_end)],marker = 'v',color = 'blue',label = 'myself')
@@ -366,7 +371,7 @@ if __name__ == '__main__':
     plt.ylabel('[km^3]',fontdict = {'fontsize':20})
     plt.yticks(fontsize = 20)
     plt.xticks(fontsize = 20)
-    plt.savefig(f"Plots/Fram_strait/5.0/Comparison/Annual_mean_mass_bilan.png")
+    plt.savefig(f"Plots/Fram_strait/7.0/Annual_mean_mass_bilan.png")
 
     plt.figure(figsize=(12,7))
     plt.plot([year for year in range(year_,year_end)],[np.nansum(northward_transport[year-year_,4:9])* 1e-9 for year in range(year_,year_end)],marker = 'v',color = 'blue',label = 'myself')
@@ -378,7 +383,7 @@ if __name__ == '__main__':
     plt.ylabel('[km^3]',fontdict = {'fontsize':20})
     plt.yticks(fontsize = 20)
     plt.xticks(fontsize = 20)
-    plt.savefig(f"Plots/Fram_strait/5.0/Comparison/Summer_mean_mass_bilan.png")
+    plt.savefig(f"Plots/Fram_strait/7.0/Summer_mean_mass_bilan.png")
 
     plt.figure(figsize=(12,7))
     plt.plot([year for year in range(year_,year_end)],[(np.nansum(northward_transport[year-year_,:4]) +  np.nansum(northward_transport[year-year_,9:]))* 1e-9 for year in range(year_,year_end)],marker = 'v',color = 'blue',label = 'myself')
@@ -392,7 +397,7 @@ if __name__ == '__main__':
     plt.ylabel('[km^3]',fontdict = {'fontsize':20})
     plt.yticks(fontsize = 20)
     plt.xticks(fontsize = 20)
-    plt.savefig(f"Plots/Fram_strait/5.0/Comparison/winter_mean_mass_bilan.png")
+    plt.savefig(f"Plots/Fram_strait/7.0/winter_mean_mass_bilan.png")
             
             
 
