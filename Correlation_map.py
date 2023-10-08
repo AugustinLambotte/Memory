@@ -100,7 +100,6 @@ def extracting_data_gos(area_lat = [60,83], area_lon = [-40,20]):
     lon = v_ds['longitude']
     lat = v_ds['latitude']
     time =  v_ds['time']
-    print(u_ds.attrs)
     v_ds.close
     u_ds.close
 
@@ -111,7 +110,7 @@ def interpole_and_save_ke():
     """
         Interpolate kinetic energy over the standard grid of cryosat and save it in Data/bw/KE
     """
-    lon_gos, lat_gos, u_gos,v_gos,time_gos = extracting_data_gos()
+    lon_gos, lat_gos, u_gos, v_gos,time_gos = extracting_data_gos()
 
     #The following lines are selecting the date when there are sit data
     starting_date = 734419
@@ -133,31 +132,33 @@ def interpole_and_save_ke():
     # Creation of arrays with only the gos data when there is cryosat data
     recorded_ugos = np.array([u_gos.isel(time = n) for n in useful_index])
     recorded_vgos = np.array([v_gos.isel(time = n) for n in useful_index])
-
     #Interpolation over the cryosat spatial grid
-    interp_ugos = []
-    interp_vgos = []
+
+    
     for day in range(len(recorded_ugos)):
+        print(f'{day}/{len(recorded_ugos)}')
         points = []
         value_ugos = []
         value_vgos = []
-        for line in range(len(recorded_ugos[0])):
-            for col in range(len(recorded_ugos[0][0])):
-                points.append([lat_gos[line,col],lon_gos[line,col]])
+        for line in range(len(lat_gos)):
+            for col in range(len(lon_gos)):
+                points.append([float(lat_gos[line]),float(lon_gos[col])])
                 value_ugos.append(recorded_ugos[day][line,col])
                 value_vgos.append(recorded_vgos[day][line,col])
-        interp_ugos.append(interpolate.griddata(points,value_ugos,(lat,lon),method = 'linear'))
-        interp_vgos.append(interpolate.griddata(points,value_vgos,(lat,lon),method = 'linear'))
-    print(np.shape(interp_ugos))
-    print(np.shape(interp_vgos))
-    kinetic_energy = [np.nanmean(1/2 * (recorded_ugos[day]**2 + recorded_vgos[day]**2)) for day in range(len(recorded_ugos))] #In [J/kg]
-    print(len(kinetic_energy))
+        interp_ugos = interpolate.griddata(points,value_ugos,(lat,lon),method = 'linear')
+        interp_vgos = interpolate.griddata(points,value_vgos,(lat,lon),method = 'linear')
 
-    np.savetxt("Data/bw/"+name+"/Cell_"+name[-1]+"_index_daily.txt",kinetic_energy) 
+        kinetic_energy = 1/2 * (interp_ugos**2 + interp_vgos**2)  #In [J/kg]
+        print(np.shape(kinetic_energy))
 
+        np.savetxt(f'Data/bw/KE/{int(date_data[day][0])}-{int(date_data[day][1])}-{int(date_data[day][2])}.txt',kinetic_energy)
+        np.savetxt(f'Data/bw/u_gos/{int(date_data[day][0])}-{int(date_data[day][1])}-{int(date_data[day][2])}.txt',interp_ugos)
+        np.savetxt(f'Data/bw/v_gos/{int(date_data[day][0])}-{int(date_data[day][1])}-{int(date_data[day][2])}.txt',interp_vgos)
+
+
+    
 year_,year_end = 2011,2021
 lon, lat, sit, sic, time = extracting_data_sit()
-interpole_and_save_ke()
 X_drift = []
 Y_drift = []
 date_data = np.loadtxt('Data/bw\date.txt')
@@ -185,3 +186,4 @@ for time_ in time:
 
 # All the sit data_array for the month of interest are merged in the following array
 recorded_sit = np.nan_to_num(np.array([sit[n] * sic[n] for n in useful_index]))
+interpole_and_save_ke()
