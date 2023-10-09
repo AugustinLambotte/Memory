@@ -87,8 +87,11 @@ def extracting_SI_drift(lat_range = [60,83], lon_range = [-40,20]):
     print("\n##### - Extracting Sea Ice drift data - #####\n")
     for year in range(year_,year_end):
         day_ignored = 0
-
-        for month in range(1,13):
+        if year == 2010:
+            month_ = 10
+        else:
+            month_ = 1
+        for month in range(month_,13):
             print(f'{month}/{year}')
             if month ==1:
                 nb_days = 31
@@ -167,7 +170,7 @@ def extracting_SI_drift(lat_range = [60,83], lon_range = [-40,20]):
 
 
                 if year == year_:
-                    if month == 1:
+                    if month == month_:
                         if day == 1:
                             lat = ds['lat'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max), drop = True)
                             lon = ds['lon'].where((ds.lon > lon_min) & (ds.lon < lon_max) & (ds.lat > lat_min) & (ds.lat < lat_max), drop = True)
@@ -237,8 +240,8 @@ def extracting_SI_drift(lat_range = [60,83], lon_range = [-40,20]):
 
 if __name__ == '__main__':
     
-    year_ = 2011
-    year_end = 2021
+    year_ = 2010
+    year_end = 2011
     #X_drift, Y_drift, lat, lon = extracting_SI_drift()
     lon_sit,lat_sit, sit, sic, sit_uncertainty, sit_time, gate_marker= extracting_data_sit()
     X_drift, Y_drift, lat_drift, lon_drift = extracting_SI_drift()

@@ -7,7 +7,7 @@ from scipy import interpolate, stats
 import cartopy.crs as ccrs
 import matplotlib.path as mpath
 import cmocean
-
+import math
 
 """
     This script compute the correlation coefficient for every pixels (80km^2) over 
@@ -47,6 +47,7 @@ def save_siv_transp_fw():
 
     Cell_transport = np.zeros((np.shape(X_drift)[0],np.shape(X_drift)[1]-2,np.shape(X_drift)[2]-2))
     Cell_siv_var = np.zeros((np.shape(X_drift)[0],np.shape(X_drift)[1]-2,np.shape(X_drift)[2]-2))
+
     for day in range(np.shape(X_drift)[0]):
         print(f'{int(date_data[day][0])}-{int(date_data[day][1])}-{int(date_data[day][2])}')
         for line in range(1,np.shape(X_drift)[1]-1):
@@ -232,11 +233,6 @@ def compute_correlation_lag_time():
         fw_flux = fw_flux[:-lag]
         siv_var = siv_var[:-lag]
         transp = transp[:-lag]
-
-        print(np.shape(ke))
-        print(np.shape(fw_flux))
-        print(np.shape(siv_var))
-        print(np.shape(transp))
         corr_ke_fw_flux = np.zeros(np.shape(ke[0]))
         p_value_ke_fw_flux = np.zeros(np.shape(ke[0]))
 
@@ -426,9 +422,205 @@ def plot_r_p_lag():
         cb.ax.tick_params(labelsize=25)
         plt.savefig(f"Plots/correlation/map/lag/correlation_ke_fw_lag={date_data[lag,-1]}_days.png")
 
-plot_r_p()
-if False:   
-    year_,year_end = 2011,2021
+def plot_fw_flux():
+    """
+        For each month, plots the mean freshwater flux
+    """
+    lon, lat, sit, sic, time = extracting_data_sit()
+    date_data = np.loadtxt('Data/bw/date.txt')
+    previous = 10
+    fw_flux_month = []
+    fw_monthly_mean = []
+    for i in range(len(date_data)):
+        if previous == date_data[i,1]:
+            fw_flux_month.append(np.loadtxt(f'Data/bw/FW_flux/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt'))
+            previous = date_data[i,1]
+
+        else:
+            fw_monthly_mean.append(np.nanmean(fw_flux_month,axis = 0))
+            fw_flux_month = [np.loadtxt(f'Data/bw/FW_flux/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt')]
+            previous = date_data[i,1]
+
+    lon = lon[1:-1,1:-1]
+    lat = lat[1:-1,1:-1]
+    fw_monthly_mean = np.array(fw_monthly_mean)
+    fw_monthly_mean[fw_monthly_mean == 0] = np.nan
+    for month in range(len(fw_monthly_mean)):
+        fig = plt.figure(figsize=(9,7))
+        axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -15))
+        
+        xlim = [-35, 12]
+        ylim = [65, 81]
+        lower_space = 3 
+        rect = mpath.Path([[xlim[0], ylim[0]],
+                        [xlim[1], ylim[0]],
+                        [xlim[1], ylim[1]],
+                        [xlim[0], ylim[1]],
+                        [xlim[0], ylim[0]],
+                        ]).interpolated(20)
+        proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+        rect_in_target = proj_to_data.transform_path(rect)
+        axs.set_boundary(rect_in_target)
+        axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+        
+        axs.coastlines()
+        axs.gridlines()
+        fw_monthly_mean[month] = fw_monthly_mean[month]*1e-9
+        min = -4
+        max = 4
+        levels = np.linspace(min,max,20)
+        cs = axs.contourf(lon, lat, fw_monthly_mean[month],levels = levels,extend = 'both',cmap = "cmo.balance", transform=ccrs.PlateCarree())
+        #cs_ = axs.contour(lon, lat, p,[0.05], colors = 'red', transform=ccrs.PlateCarree())
+        
+        current_month = int(np.mod(month+9,12)) +1
+        current_year = int(2010 + math.floor((month+9)/12))
+        axs.set_title(f"Freshwater flux {current_month}/{current_year}", fontsize = 15)
+        cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+        
+        cb = plt.colorbar(cs, cax = cax, ticks = np.arange(min,max+1))
+        cb.ax.tick_params(labelsize=25)
+        
+        print(f'{current_month} - {current_year}')
+        try:
+            os.makedirs(f'Plots/mean/FW_flux/{current_year}')
+        except:
+            pass
+        plt.savefig(f'Plots/mean/FW_flux/{current_year}/{current_year}-{current_month}.png')
+        plt.close()
+
+def plot_siv_variation():
+    """
+        For each month, plots the mean freshwater flux
+    """
+    lon, lat, sit, sic, time = extracting_data_sit()
+    date_data = np.loadtxt('Data/bw/date.txt')
+    previous = 10
+    siv_var_month = []
+    siv_var_monthly_mean = []
+    for i in range(len(date_data)):
+        if previous == date_data[i,1]:
+            siv_var_month.append(np.loadtxt(f'Data/bw/SIV_var/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt'))
+            previous = date_data[i,1]
+
+        else:
+            siv_var_monthly_mean.append(np.nanmean(siv_var_month,axis = 0))
+            siv_var_month = [np.loadtxt(f'Data/bw/FW_flux/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt')]
+            previous = date_data[i,1]
+
+    lon = lon[1:-1,1:-1]
+    lat = lat[1:-1,1:-1]
+    siv_var_monthly_mean = np.array(siv_var_monthly_mean)
+    siv_var_monthly_mean[siv_var_monthly_mean == 0] = np.nan
+    for month in range(len(siv_var_monthly_mean)):
+        fig = plt.figure(figsize=(9,7))
+        axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -15))
+        
+        xlim = [-35, 12]
+        ylim = [65, 81]
+        lower_space = 3 
+        rect = mpath.Path([[xlim[0], ylim[0]],
+                        [xlim[1], ylim[0]],
+                        [xlim[1], ylim[1]],
+                        [xlim[0], ylim[1]],
+                        [xlim[0], ylim[0]],
+                        ]).interpolated(20)
+        proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+        rect_in_target = proj_to_data.transform_path(rect)
+        axs.set_boundary(rect_in_target)
+        axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+        
+        axs.coastlines()
+        axs.gridlines()
+        siv_var_monthly_mean[month] = siv_var_monthly_mean[month]*1e-9
+        min = -4
+        max = 4
+        levels = np.linspace(min,max,20)
+        cs = axs.contourf(lon, lat, siv_var_monthly_mean[month],levels = levels,extend = 'both',cmap = "cmo.balance", transform=ccrs.PlateCarree())
+        #cs_ = axs.contour(lon, lat, p,[0.05], colors = 'red', transform=ccrs.PlateCarree())
+        
+        current_month = int(np.mod(month+9,12)) +1
+        current_year = int(2010 + math.floor((month+9)/12))
+        axs.set_title(f"Freshwater flux {current_month}/{current_year}", fontsize = 15)
+        cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+        
+        cb = plt.colorbar(cs, cax = cax, ticks = np.arange(min,max+1))
+        cb.ax.tick_params(labelsize=25)
+        
+        print(f'{current_month} - {current_year}')
+        try:
+            os.makedirs(f'Plots/mean/SIV_var/{current_year}')
+        except:
+            pass
+        plt.savefig(f'Plots/mean/SIV_var/{current_year}/{current_year}-{current_month}.png')
+        plt.close()
+
+def plot_transp():
+    """
+        For each month, plots the mean freshwater flux
+    """
+    lon, lat, sit, sic, time = extracting_data_sit()
+    date_data = np.loadtxt('Data/bw/date.txt')
+    previous = 10
+    transp_month = []
+    transp_monthly_mean = []
+    for i in range(len(date_data)):
+        if previous == date_data[i,1]:
+            transp_month.append(np.loadtxt(f'Data/bw/Transport/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt'))
+            previous = date_data[i,1]
+
+        else:
+            transp_monthly_mean.append(np.nanmean(transp_month,axis = 0))
+            transp_month = [np.loadtxt(f'Data/bw/Transport/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt')]
+            previous = date_data[i,1]
+
+    lon = lon[1:-1,1:-1]
+    lat = lat[1:-1,1:-1]
+    transp_monthly_mean = np.array(transp_monthly_mean)
+    transp_monthly_mean[transp_monthly_mean == 0] = np.nan
+    for month in range(len(transp_monthly_mean)):
+        fig = plt.figure(figsize=(9,7))
+        axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -15))
+        
+        xlim = [-35, 12]
+        ylim = [65, 81]
+        lower_space = 3 
+        rect = mpath.Path([[xlim[0], ylim[0]],
+                        [xlim[1], ylim[0]],
+                        [xlim[1], ylim[1]],
+                        [xlim[0], ylim[1]],
+                        [xlim[0], ylim[0]],
+                        ]).interpolated(20)
+        proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+        rect_in_target = proj_to_data.transform_path(rect)
+        axs.set_boundary(rect_in_target)
+        axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+        
+        axs.coastlines()
+        axs.gridlines()
+        transp_monthly_mean[month] = transp_monthly_mean[month]*1e-9
+        min = -4
+        max = 4
+        levels = np.linspace(min,max,20)
+        cs = axs.contourf(lon, lat, transp_monthly_mean[month],levels = levels,extend = 'both',cmap = "cmo.balance", transform=ccrs.PlateCarree())
+        #cs_ = axs.contour(lon, lat, p,[0.05], colors = 'red', transform=ccrs.PlateCarree())
+        
+        current_month = int(np.mod(month+9,12)) +1
+        current_year = int(2010 + math.floor((month+9)/12))
+        axs.set_title(f"Freshwater flux {current_month}/{current_year}", fontsize = 15)
+        cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+        
+        cb = plt.colorbar(cs, cax = cax, ticks = np.arange(min,max+1))
+        cb.ax.tick_params(labelsize=25)
+        
+        print(f'{current_month} - {current_year}')
+        try:
+            os.makedirs(f'Plots/mean/Transport/{current_year}')
+        except:
+            pass
+        plt.savefig(f'Plots/mean/Transport/{current_year}/{current_year}-{current_month}.png')
+        plt.close()
+if True:   
+    year_,year_end = 2010,2021
     lon, lat, sit, sic, time = extracting_data_sit()
     X_drift = []
     Y_drift = []
@@ -457,4 +649,5 @@ if False:
 
     # All the sit data_array for the month of interest are merged in the following array
     recorded_sit = np.nan_to_num(np.array([sit[n] * sic[n] for n in useful_index]))
-#compute_correlation()
+plot_transp()
+plot_siv_variation()

@@ -54,7 +54,7 @@ def index_cell(name ='Cell_A',area_lat = [75,77.5], area_lon = [-10,0]):
     lon, lat, u_gos,v_gos,time = extracting_data(area_lat=area_lat,area_lon=area_lon)
     kinetic_energy = []
 
-    for year in range(2011,2020):
+    for year in range(2011,2021):
         kinetic_energy.append([])
         # Retrieve all the time index corresponding to the month of interest.
         useful_index = []

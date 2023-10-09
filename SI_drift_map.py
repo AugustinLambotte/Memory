@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     X_drift, Y_drift, lat_drift, lon_drift = extracting_SI_drift()
     lon_sit,lat_sit,_,_,_,_ = extracting_data_sit()
-    interpolated = True
+    interpolated = False
     for year in range(year_,year_end):
         for month in range(1,13):
             X_drift_av, Y_drift_av, lon,lat = mensual_mean(year,month,interpolated=interpolated)
@@ -191,7 +191,7 @@ if __name__ == "__main__":
             axs.set_title(f" {year} - {month}",fontsize = 30)
             #Magnitude plot
             levels = np.linspace(0,0.3,10)
-            cs = axs.contourf(lon,lat,current_magnitude_ms, cmap = "cmo.speed", levels = levels, transform =ccrs.PlateCarree())
+            cs = axs.contourf(lon,lat,current_magnitude_ms, extend = 'both',cmap = "cmo.speed", levels = levels, transform =ccrs.PlateCarree())
             #Vector plot
             X_drift_av = X_drift_av/current_magnitude * 10
             Y_drift_av = Y_drift_av/current_magnitude * 10

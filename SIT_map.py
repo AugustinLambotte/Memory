@@ -100,7 +100,6 @@ def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_se
     plt.show() """
     sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     time =  ds['Time']
-    
     ds.close
     return lon, lat, sit, sic, sit_uncertainty, time
 
@@ -153,7 +152,7 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
     if save:
         dates = [[2011,3,15],[2011,9,15],[2012,3,15],[2012,9,15],[2013,3,15],[2013,9,15],[2014,3,15],[2014,9,15],[2015,3,15],[2015,9,15],[2016,3,15]
                 ,[2016,9,15],[2017,3,15],[2017,9,15],[2018,3,15],[2018,9,15],[2019,3,15],[2019,9,15]]
-        for year in range(2014,2020):
+        for year in range(2011,2020):
             for month in range(1,13):
                 date = [year,month]
                 print(f"### - Saving SIT: {date[0]}-{date[1]} - ###\n")
@@ -180,7 +179,7 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
                 axs.gridlines()
                 levels = np.linspace(0,4,1000)
                 mean_sit,mean_sic = mensual_mean(date[0],date[1])
-                cs = axs.contourf(lon, lat, mean_sit, levels = levels, cmap = "cmo.ice", transform=ccrs.PlateCarree())
+                cs = axs.contourf(lon, lat, mean_sit, levels = levels, extent = 'both',cmap = "cmo.ice", transform=ccrs.PlateCarree())
                 cs_ = axs.contour(lon, lat, mean_sic,[0.15], colors = 'red', transform=ccrs.PlateCarree())
                 axs.set_title(" {} - {}".format(date[0],date[1]), fontsize = 30)
                 cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])

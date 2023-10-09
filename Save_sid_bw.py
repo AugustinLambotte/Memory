@@ -32,7 +32,7 @@ def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_se
     sic = sic.where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     sit_uncertainty = ds['Sea_Ice_Thickness_Uncertainty'].where((ds.Longitude > lon_min) & (ds.Longitude < lon_max) & (ds.Latitude > lat_min) & (ds.Latitude < lat_max) & (ds.Latitude > 65.4 + (76.5-65.4)/(9+17) * (ds.Longitude + 17)), drop = True)
     time =  ds['Time']
-
+    
     
     gate_marker = 0
     ds.close
@@ -41,20 +41,19 @@ def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_se
 
 if __name__ == '__main__':
     
-    year_ = 2011
+    year_ = 2010
     year_end = 2021
     lon_sit,lat_sit, sit, sic, sit_uncertainty, sit_time, gate_marker= extracting_data_sit()
-    month_names = ["jan", "feb", "mar", "april", "may", "june", "july", "aug", "sept", "oct","nov", "dec"]
 
     #Day flatten sit is used in the temporal interpolation of sid over the bi-weekly grid.
     day_flatten_sit = []
     starting_date = 734419
-    first_jan_day = starting_date + (date(2011,1,1) - date(2010,10,1)).days #The 1st january 2011 in the original sit dataset date format
+    #first_jan_day = starting_date + (date(2011,1,1) - date(2010,10,1)).days #The 1st january 2011 in the original sit dataset date format
     rec_date = []
     for time_ in sit_time:
         corresponding_date = date(2010,10,1) + timedelta(days = int(time_)-starting_date)
         if corresponding_date.year >= year_ and corresponding_date.year < year_end:
-            day_flatten_sit.append(int(time_)-first_jan_day)
+            day_flatten_sit.append(int(time_)-starting_date)
             rec_date.append(corresponding_date)
             try:
                     os.makedirs(f"Data/bw/X_drift")
@@ -67,13 +66,17 @@ if __name__ == '__main__':
     day_flatten_sid = []
     day = 0
     for year in range(year_,year_end):
+        if year == 2010:
+            month_names = ["oct","nov", "dec"]
+        else:
+            month_names = ["jan", "feb", "mar", "april", "may", "june", "july", "aug", "sept", "oct","nov", "dec"]
+
         for month in month_names:
             for file in os.listdir(f'Data/X_drift/{year}/{month}'):
                 day_flatten_sid.append(day)
                 X_drift_flatten.append(np.loadtxt(f'Data/X_drift/{year}/{month}/' + file))
                 Y_drift_flatten.append(np.loadtxt(f'Data/Y_drift/{year}/{month}/' + file))
                 day += 1
-    
     #Temporal interpolation. We interpolate this daily series over the biweekly SIV time resolution
     x_interpolator = interpolate.interp1d(day_flatten_sid,X_drift_flatten,axis = 0)
     y_interpolator = interpolate.interp1d(day_flatten_sid,Y_drift_flatten,axis = 0)
