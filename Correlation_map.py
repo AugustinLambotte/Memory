@@ -3,7 +3,12 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import os 
 from datetime import timedelta, date
-from scipy import interpolate
+from scipy import interpolate, stats
+import cartopy.crs as ccrs
+import matplotlib.path as mpath
+import cmocean
+
+
 """
     This script compute the correlation coefficient for every pixels (80km^2) over 
     the EGC between the intensity of the EGC (KE) and the fresh water flux.
@@ -155,35 +160,301 @@ def interpole_and_save_ke():
         np.savetxt(f'Data/bw/u_gos/{int(date_data[day][0])}-{int(date_data[day][1])}-{int(date_data[day][2])}.txt',interp_ugos)
         np.savetxt(f'Data/bw/v_gos/{int(date_data[day][0])}-{int(date_data[day][1])}-{int(date_data[day][2])}.txt',interp_vgos)
 
+def compute_correlation():
+    """
+        This function compute the correlation coefficient for each cells based on data stored in Data/bw
+    """
+    ke = []
+    fw_flux = []
+    siv_var = []
+    transp = []
+    for file in os.listdir('Data/bw/KE'):
+        ke.append(np.loadtxt(f'Data/bw/KE/{file}')[1:-1,1:-1])
+        fw_flux.append(np.loadtxt(f'Data/bw/FW_flux/{file}'))
+        siv_var.append(np.loadtxt(f'Data/bw/SIV_var/{file}'))
+        transp.append(np.loadtxt(f'Data/bw/Transport/{file}'))
+    ke = np.nan_to_num(np.array(ke))
+    fw_flux = np.nan_to_num(np.array(fw_flux))
+    siv_var = np.nan_to_num(np.array(siv_var))
+    transp = np.nan_to_num(np.array(transp))
 
+    corr_ke_fw_flux = np.zeros(np.shape(ke[0]))
+    p_value_ke_fw_flux = np.zeros(np.shape(ke[0]))
+
+    corr_ke_siv_var = np.zeros(np.shape(ke[0]))
+    p_value_ke_siv_var = np.zeros(np.shape(ke[0]))
+
+    corr_ke_transp = np.zeros(np.shape(ke[0]))
+    p_value_ke_transp = np.zeros(np.shape(ke[0]))
+    for line in range(np.shape(corr_ke_fw_flux)[0]):
+        for col in range(np.shape(corr_ke_fw_flux)[1]):
+            corr_ke_fw_flux[line,col] = stats.pearsonr(ke[:,line,col],fw_flux[:,line,col])[0]
+            p_value_ke_fw_flux[line,col] = stats.pearsonr(ke[:,line,col],fw_flux[:,line,col])[1]
+
+            corr_ke_siv_var[line,col] = stats.pearsonr(ke[:,line,col],siv_var[:,line,col])[0]
+            p_value_ke_siv_var[line,col] = stats.pearsonr(ke[:,line,col],siv_var[:,line,col])[1]
+
+            corr_ke_transp[line,col] = stats.pearsonr(ke[:,line,col],transp[:,line,col])[0]
+            p_value_ke_transp[line,col] = stats.pearsonr(ke[:,line,col],transp[:,line,col])[1]
+
+    np.savetxt(f'Data/bw/r_ke_fw.txt',corr_ke_fw_flux)
+    np.savetxt(f'Data/bw/p_ke_fw.txt',p_value_ke_fw_flux)
+
+    np.savetxt(f'Data/bw/r_ke_siv_var.txt',corr_ke_siv_var)
+    np.savetxt(f'Data/bw/p_ke_siv_var.txt',p_value_ke_siv_var)
+
+    np.savetxt(f'Data/bw/r_ke_transp.txt',corr_ke_transp)
+    np.savetxt(f'Data/bw/p_ke_transp.txt',p_value_ke_transp)
+
+def compute_correlation_lag_time():
+    """
+        This function compute the correlation coefficient with different lag times spaced by 15 days (the time resolution) for each cells based on data stored in Data/bw
+    """
+    date_data = np.loadtxt('Data/bw\date.txt')
+    for lag in range(1,5):
+        ke = []
+        fw_flux = []
+        siv_var = []
+        transp = []
+        for file in os.listdir('Data/bw/KE'):
+            ke.append(np.loadtxt(f'Data/bw/KE/{file}')[1:-1,1:-1])
+            fw_flux.append(np.loadtxt(f'Data/bw/FW_flux/{file}'))
+            siv_var.append(np.loadtxt(f'Data/bw/SIV_var/{file}'))
+            transp.append(np.loadtxt(f'Data/bw/Transport/{file}'))
+        ke = np.nan_to_num(np.array(ke))
+        fw_flux = np.nan_to_num(np.array(fw_flux))
+        siv_var = np.nan_to_num(np.array(siv_var))
+        transp = np.nan_to_num(np.array(transp))
+
+        #Lag time
+
+        ke = ke[lag:,:,:]
+        fw_flux = fw_flux[:-lag]
+        siv_var = siv_var[:-lag]
+        transp = transp[:-lag]
+
+        print(np.shape(ke))
+        print(np.shape(fw_flux))
+        print(np.shape(siv_var))
+        print(np.shape(transp))
+        corr_ke_fw_flux = np.zeros(np.shape(ke[0]))
+        p_value_ke_fw_flux = np.zeros(np.shape(ke[0]))
+
+        corr_ke_siv_var = np.zeros(np.shape(ke[0]))
+        p_value_ke_siv_var = np.zeros(np.shape(ke[0]))
+
+        corr_ke_transp = np.zeros(np.shape(ke[0]))
+        p_value_ke_transp = np.zeros(np.shape(ke[0]))
+
+        for line in range(np.shape(corr_ke_fw_flux)[0]):
+            for col in range(np.shape(corr_ke_fw_flux)[1]):
+                corr_ke_fw_flux[line,col] = stats.pearsonr(ke[:,line,col],fw_flux[:,line,col])[0]
+                p_value_ke_fw_flux[line,col] = stats.pearsonr(ke[:,line,col],fw_flux[:,line,col])[1]
+
+                corr_ke_siv_var[line,col] = stats.pearsonr(ke[:,line,col],siv_var[:,line,col])[0]
+                p_value_ke_siv_var[line,col] = stats.pearsonr(ke[:,line,col],siv_var[:,line,col])[1]
+
+                corr_ke_transp[line,col] = stats.pearsonr(ke[:,line,col],transp[:,line,col])[0]
+                p_value_ke_transp[line,col] = stats.pearsonr(ke[:,line,col],transp[:,line,col])[1]
+
+        np.savetxt(f'Data/bw/lag/r_ke_fw_lag={date_data[lag,-1]}_days.txt',corr_ke_fw_flux)
+        np.savetxt(f'Data/bw/lag/p_ke_fw_lag={date_data[lag,-1]}_days.txt',p_value_ke_fw_flux)
+
+        np.savetxt(f'Data/bw/lag/r_ke_siv_var_lag={date_data[lag,-1]}_days.txt',corr_ke_siv_var)
+        np.savetxt(f'Data/bw/lag/p_ke_siv_var_lag={date_data[lag,-1]}_days.txt',p_value_ke_siv_var)
+
+        np.savetxt(f'Data/bw/lag/r_ke_transp_lag={date_data[lag,-1]}_days.txt',corr_ke_transp)
+        np.savetxt(f'Data/bw/lag/p_ke_transp_lag={date_data[lag,-1]}_days.txt',p_value_ke_transp)
+
+def plot_r_p():
+    """
+        This function plots and save correlation map based on data in Data/bw/r_... and Data/bw/p_...
+    """
+    lon, lat, sit, sic, time = extracting_data_sit()
+    ke = []
+    for file in os.listdir('Data/bw/KE'):
+        ke.append(np.loadtxt('Data/bw/KE/' + file)[1:-1,1:-1])
+    ke = np.array(ke)
+    mean_ke = np.nanmean(ke,axis = 0)
+    ######## - KE vs FW_flux - #########
+    r = np.loadtxt('Data/bw/r_ke_fw.txt')
+    p = np.loadtxt('Data/bw/p_ke_fw.txt')
+    lon = lon[1:-1,1:-1]
+    lat = lat[1:-1,1:-1]
+    fig = plt.figure(figsize=(9,7))
+    axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -15))
+    #fig, axs = plt.plots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
+    #axs.set_extent([-47, 16, 60, 85], crs = ccrs.PlateCarree())
     
-year_,year_end = 2011,2021
-lon, lat, sit, sic, time = extracting_data_sit()
-X_drift = []
-Y_drift = []
-date_data = np.loadtxt('Data/bw\date.txt')
-for file in os.listdir(f'Data/bw/X_drift'):
-    X_drift.append(np.loadtxt(f'Data/bw/X_drift/{file}'))
-    Y_drift.append(np.loadtxt(f'Data/bw/Y_drift/{file}'))
+    xlim = [-35, 12]
+    ylim = [65, 81]
+    lower_space = 3 
+    rect = mpath.Path([[xlim[0], ylim[0]],
+                    [xlim[1], ylim[0]],
+                    [xlim[1], ylim[1]],
+                    [xlim[0], ylim[1]],
+                    [xlim[0], ylim[0]],
+                    ]).interpolated(20)
+    proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+    rect_in_target = proj_to_data.transform_path(rect)
+    axs.set_boundary(rect_in_target)
+    axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+    
+    axs.coastlines()
+    axs.gridlines()
+    levels = np.linspace(-0.5,0.5,1000)
+    cs = axs.contourf(lon, lat, r, levels = levels, cmap = "cmo.balance", transform=ccrs.PlateCarree())
+    cs_ = axs.contour(lon, lat, p,[0.05], colors = 'red', transform=ccrs.PlateCarree())
+    #cs_ = axs.contour(lon, lat, p,[0.01], colors = 'green',linestyles = 'dashed', transform=ccrs.PlateCarree())
+    cs__ = axs.contour(lon, lat, mean_ke,[0.5*np.nanmean(mean_ke)], colors = 'green',linestyles = 'dashed', transform=ccrs.PlateCarree())
+    axs.set_title("Correlation between kinetic energy and freshwater flux", fontsize = 15)
+    cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+    
+    cb = plt.colorbar(cs, cax = cax, ticks = [-0.5,0,0.5])
+    cb.ax.tick_params(labelsize=25)
+    plt.savefig(f"Plots/correlation/map/correlation_ke_fw.png")
+
+    ######## - KE vs siv_variation - #########
+    r = np.loadtxt('Data/bw/r_ke_siv_var.txt')
+    p = np.loadtxt('Data/bw/p_ke_siv_var.txt')
+    fig = plt.figure(figsize=(9,7))
+    axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -18))
+    #fig, axs = plt.plots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
+    #axs.set_extent([-47, 16, 60, 85], crs = ccrs.PlateCarree())
+    
+    xlim = [-43, 16]
+    ylim = [61, 81]
+    lower_space = 3 
+    rect = mpath.Path([[xlim[0], ylim[0]],
+                    [xlim[1], ylim[0]],
+                    [xlim[1], ylim[1]],
+                    [xlim[0], ylim[1]],
+                    [xlim[0], ylim[0]],
+                    ]).interpolated(20)
+    proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+    rect_in_target = proj_to_data.transform_path(rect)
+    axs.set_boundary(rect_in_target)
+    axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+    
+    axs.coastlines()
+    axs.gridlines()
+    levels = np.linspace(-0.5,0.5,1000)
+    cs = axs.contourf(lon, lat, r, levels = levels, cmap = "cmo.balance", transform=ccrs.PlateCarree())
+    cs_ = axs.contour(lon, lat, p,[0.05], colors = 'red', transform=ccrs.PlateCarree())
+    axs.set_title("Correlation between kinetic energy and siv variation", fontsize = 15)
+    cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+    
+    cb = plt.colorbar(cs, cax = cax, ticks = [-0.5,0,0.5])
+    cb.ax.tick_params(labelsize=25)
+    plt.savefig(f"Plots/correlation/map/correlation_ke_siv_var.png")
+
+    ######## - KE vs transport - #########
+    r = np.loadtxt('Data/bw/r_ke_transp.txt')
+    p = np.loadtxt('Data/bw/p_ke_transp.txt')
+    fig = plt.figure(figsize=(9,7))
+    axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -18))
+    #fig, axs = plt.plots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
+    #axs.set_extent([-47, 16, 60, 85], crs = ccrs.PlateCarree())
+    
+    xlim = [-43, 16]
+    ylim = [61, 81]
+    lower_space = 3 
+    rect = mpath.Path([[xlim[0], ylim[0]],
+                    [xlim[1], ylim[0]],
+                    [xlim[1], ylim[1]],
+                    [xlim[0], ylim[1]],
+                    [xlim[0], ylim[0]],
+                    ]).interpolated(20)
+    proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+    rect_in_target = proj_to_data.transform_path(rect)
+    axs.set_boundary(rect_in_target)
+    axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+    
+    axs.coastlines()
+    axs.gridlines()
+    levels = np.linspace(-0.5,0.5,1000)
+    cs = axs.contourf(lon, lat, r, levels = levels, cmap = "cmo.balance", transform=ccrs.PlateCarree())
+    cs_ = axs.contour(lon, lat, p,[0.05], colors = 'red', transform=ccrs.PlateCarree())
+    axs.set_title("Correlation between kinetic energy and net sea ice transport", fontsize = 15)
+    cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+    
+    cb = plt.colorbar(cs, cax = cax, ticks = [-0.5,0,0.5])
+    cb.ax.tick_params(labelsize=25)
+    plt.savefig(f"Plots/correlation/map/correlation_ke_transp.png")
+
+def plot_r_p_lag():
+    """
+        Plot and save the correlation maps for different lag_time
+    """
+    lon, lat, sit, sic, time = extracting_data_sit()
+    date_data = np.loadtxt('Data/bw\date.txt')
+
+    lon = lon[1:-1,1:-1]
+    lat = lat[1:-1,1:-1]
+    for lag in range(1,5):
+        r = np.loadtxt(f'Data/bw/lag/r_ke_fw_lag={date_data[lag,-1]}_days.txt')
+        p = np.loadtxt(f'Data/bw/lag/p_ke_fw_lag={date_data[lag,-1]}_days.txt')
+        fig = plt.figure(figsize=(9,7))
+        axs = plt.axes(projection = ccrs.LambertConformal(central_longitude = -15))
+        #fig, axs = plt.plots(nrows = 1, ncols = 1, figsize=figsize, subplot_kw={'projection': projection})
+        #axs.set_extent([-47, 16, 60, 85], crs = ccrs.PlateCarree())
+        
+        xlim = [-35, 12]
+        ylim = [65, 81]
+        lower_space = 3 
+        rect = mpath.Path([[xlim[0], ylim[0]],
+                        [xlim[1], ylim[0]],
+                        [xlim[1], ylim[1]],
+                        [xlim[0], ylim[1]],
+                        [xlim[0], ylim[0]],
+                        ]).interpolated(20)
+        proj_to_data   = ccrs.PlateCarree()._as_mpl_transform(axs) - axs.transData
+        rect_in_target = proj_to_data.transform_path(rect)
+        axs.set_boundary(rect_in_target)
+        axs.set_extent([xlim[0], xlim[1], ylim[0] - lower_space, ylim[1]])
+        
+        axs.coastlines()
+        axs.gridlines()
+        levels = np.linspace(-0.5,0.5,1000)
+        cs = axs.contourf(lon, lat, r, levels = levels, cmap = "cmo.balance", transform=ccrs.PlateCarree())
+        cs_ = axs.contour(lon, lat, p,[0.05], colors = 'red', transform=ccrs.PlateCarree())
+        #cs_ = axs.contour(lon, lat, p,[0.01], colors = 'green',linestyles = 'dashed', transform=ccrs.PlateCarree())
+        axs.set_title(f"Correlation between kinetic energy and freshwater flux\n with lag time = {int(date_data[lag,-1])} days", fontsize = 15)
+        cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
+        
+        cb = plt.colorbar(cs, cax = cax, ticks = [-0.5,0,0.5])
+        cb.ax.tick_params(labelsize=25)
+        plt.savefig(f"Plots/correlation/map/lag/correlation_ke_fw_lag={date_data[lag,-1]}_days.png")
+
+plot_r_p()
+if False:   
+    year_,year_end = 2011,2021
+    lon, lat, sit, sic, time = extracting_data_sit()
+    X_drift = []
+    Y_drift = []
+    date_data = np.loadtxt('Data/bw\date.txt')
+    for file in os.listdir(f'Data/bw/X_drift'):
+        X_drift.append(np.loadtxt(f'Data/bw/X_drift/{file}'))
+        Y_drift.append(np.loadtxt(f'Data/bw/Y_drift/{file}'))
 
 
-useful_index = []
-day_of_year_with_sit_data = []
-i = 0
-starting_date = 734419
-time_gap = []#record the time gap in days between each data points. (14, 15 or 16)
+    useful_index = []
+    day_of_year_with_sit_data = []
+    i = 0
+    starting_date = 734419
+    time_gap = []#record the time gap in days between each data points. (14, 15 or 16)
 
-for time_ in time:
-    corresponding_date = date(2010,10,1) + timedelta(days = int(time_)-starting_date)
-    if corresponding_date.year >= year_ and corresponding_date.year < year_end:
-        if len(useful_index) == 0:#We record one day before the starting date to be able to compute the SIV_variation for the first day.
-            useful_index.append(i-1)
-            
-        useful_index.append(i)
-        time_gap.append(int(time[i]) - int(time[i-1]))
-        day_of_year_with_sit_data.append(corresponding_date.day)
-    i += 1
+    for time_ in time:
+        corresponding_date = date(2010,10,1) + timedelta(days = int(time_)-starting_date)
+        if corresponding_date.year >= year_ and corresponding_date.year < year_end:
+            if len(useful_index) == 0:#We record one day before the starting date to be able to compute the SIV_variation for the first day.
+                useful_index.append(i-1)
+                
+            useful_index.append(i)
+            time_gap.append(int(time[i]) - int(time[i-1]))
+            day_of_year_with_sit_data.append(corresponding_date.day)
+        i += 1
 
-# All the sit data_array for the month of interest are merged in the following array
-recorded_sit = np.nan_to_num(np.array([sit[n] * sic[n] for n in useful_index]))
-interpole_and_save_ke()
+    # All the sit data_array for the month of interest are merged in the following array
+    recorded_sit = np.nan_to_num(np.array([sit[n] * sic[n] for n in useful_index]))
+#compute_correlation()
