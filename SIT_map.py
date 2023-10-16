@@ -74,7 +74,7 @@ def give_time_snapshot(year,month,day):
     time_snapshot = days_from_start/time_step
     return int(time_snapshot)
 
-def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [65,80.5], lon_range = [-40,40]):
+def extracting_data_sit(file = "C:/Users/Augustin/Downloads/ubristol_cryosat2_seaicethickness_nh_80km_v1p7.nc", lat_range = [60,83], lon_range = [-40,20]):
     """ 
         Given the file path "C:/.../..." to the .nc file it returns the longitude, latitude, sea_ice_thickness and time 
         restricted on the area defined by lat_range and lon_range
@@ -199,9 +199,20 @@ def plot_mensual_mean(year, month, projection, figsize = (9,7), save = False):
 
         fig.colorbar(cs, ax = axs)
         plt.show()
-    
+
+def save_bw():
+    """
+        Save sit,sic,lat and lon in the same format as Data/bw
+    """  
+    date_data = np.loadtxt('Data/bw/date.txt')
+    np.savetxt('Data/bw/lat.txt',lat)
+    np.savetxt('Data/bw/lon.txt',lon)
+    for i in range(len(date_data)):
+        np.savetxt(f'Data/bw/sit/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt',sit[i,:,:])
+        np.savetxt(f'Data/bw/sic/{int(date_data[i,0])}-{int(date_data[i,1])}-{int(date_data[i,2])}.txt',sic[i,:,:])
 if __name__ == '__main__':
     lon, lat, sit, sic, sit_uncertainty, time = extracting_data_sit()
     # The projection of the map
     projection = ccrs.LambertConformal(central_longitude = -18)
-    plot_mensual_mean(2015,5,projection,save = True)
+    #plot_mensual_mean(2015,5,projection,save = True)
+    save_bw()

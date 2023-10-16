@@ -540,7 +540,7 @@ def plot_siv_variation():
         
         current_month = int(np.mod(month+9,12)) +1
         current_year = int(2010 + math.floor((month+9)/12))
-        axs.set_title(f"Freshwater flux {current_month}/{current_year}", fontsize = 15)
+        axs.set_title(f"SIV variation {current_month}/{current_year}", fontsize = 15)
         cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
         
         cb = plt.colorbar(cs, cax = cax, ticks = np.arange(min,max+1))
@@ -606,7 +606,7 @@ def plot_transp():
         
         current_month = int(np.mod(month+9,12)) +1
         current_year = int(2010 + math.floor((month+9)/12))
-        axs.set_title(f"Freshwater flux {current_month}/{current_year}", fontsize = 15)
+        axs.set_title(f"Sea ice transport {current_month}/{current_year}", fontsize = 15)
         cax = fig.add_axes([axs.get_position().x1+0.01,axs.get_position().y0 - 0.02,0.04,axs.get_position().height])
         
         cb = plt.colorbar(cs, cax = cax, ticks = np.arange(min,max+1))
@@ -619,6 +619,7 @@ def plot_transp():
             pass
         plt.savefig(f'Plots/mean/Transport/{current_year}/{current_year}-{current_month}.png')
         plt.close()
+
 if True:   
     year_,year_end = 2010,2021
     lon, lat, sit, sic, time = extracting_data_sit()
